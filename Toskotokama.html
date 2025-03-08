@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Toskotokama</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f3f8ff;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 10px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+        }
+        .hidden { display: none; }
+        .option { margin: 10px; padding: 10px; background: #ddd; border-radius: 5px; cursor: pointer; display: inline-block; }
+        #sentence-display, #user-sentence, #feedback { margin: 20px; font-size: 18px; font-weight: bold; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Toskotokama</h1>
+        <p>Select a challenge to begin:</p>
+        <button onclick="startMatchingGame()">Match Words</button>
+        <button onclick="startSentenceGame()">Form Sentence</button>
+        <div id="game-area"></div>
+    </div>
+    
+    <script>
+        const wordPairs = [
+            { foreign: "Me", english: "I/Me" },
+            { foreign: "Te", english: "You" },
+            { foreign: "Tu", english: "They" },
+            { foreign: "Tubo", english: "He" },
+            { foreign: "Tube", english: "She" },
+            { foreign: "Ta", english: "Us/We" },
+            { foreign: "Se", english: "It/That" },
+            { foreign: "Koto", english: "Good" },
+            { foreign: "Beta", english: "Attractive" },
+            { foreign: "Betabo", english: "Handsome" },
+            { foreign: "Betabe", english: "Beautiful" },
+            { foreign: "Samo", english: "Same" },
+            { foreign: "Bata", english: "Hard" },
+            { foreign: "Emba", english: "Inside" },
+            { foreign: "Kuta", english: "Front" },
+            { foreign: "Taka", english: "Hot" },
+            { foreign: "Moto", english: "Big" },
+            { foreign: "Amata", english: "Awake" },
+            { foreign: "Akua", english: "Water" },
+            { foreign: "Busa", english: "Land" },
+            { foreign: "Mamu", english: "Human" },
+            { foreign: "Mimi", english: "Parent" },
+            { foreign: "Imi", english: "Child" },
+            { foreign: "Takomo", english: "Family" },
+            { foreign: "Bamato", english: "Hello" },
+            { foreign: "Bama", english: "Thanks" },
+            { foreign: "Kama", english: "Language" },
+            { foreign: "Moka", english: "Money" },
+            { foreign: "Moka", english: "Valuable" },
+            { foreign: "Amu", english: "Food" },
+            { foreign: "Kamu", english: "Clothing" },
+            { foreign: "Oma", english: "Home" },
+            { foreign: "Omau", english: "Room" },
+            { foreign: "Kao", english: "Work" },
+            { foreign: "Kasa", english: "Speak" },
+            { foreign: "Kum", english: "Go" },
+            { foreign: "Tum", english: "Do" },
+            { foreign: "Mak", english: "Make" },
+            { foreign: "Ata", english: "Clean" },
+            { foreign: "Tes", english: "Give" },
+            { foreign: "Sesa", english: "See" },
+            { foreign: "Kata", english: "Hear" },
+            { foreign: "Smat", english: "Smell" },
+            { foreign: "Boma", english: "Feel" },
+            { foreign: "Metu", english: "Taste" },
+            { foreign: "Emot", english: "Emotion" },
+            { foreign: "Maku", english: "Day" },
+            { foreign: "Aku", english: "Time" },
+            { foreign: "Tut", english: "Light/Bright" },
+            { foreign: "Buta", english: "Alive" },
+            { foreign: "Mok", english: "Want" },
+            { foreign: "Ku", english: "Offensive" },
+            { foreign: "Eka", english: "Funny" },
+            { foreign: "Mo", english: "Yes" },
+            { foreign: "To", english: "No" },
+            { foreign: "Tos", english: "More of" },
+            { foreign: "Mos", english: "Opposite" },
+            { foreign: "Sa", english: "Past Tense" },
+            { foreign: "Su", english: "Future Tense" },
+            { foreign: "Bo", english: "Male" },
+            { foreign: "Be", english: "Female" },
+            { foreign: "Komo", english: "And/Both" },
+            { foreign: "Oko", english: "Or" },
+            { foreign: "Bebe", english: "Question" }
+        ];
+
+        const sentences = [
+            { english: "I like you", foreign: "Me Koto Emot Te" },
+            { english: "I really like you", foreign: "Me Tos Koto Emot Te" },
+            { english: "I am Awake", foreign: "Me Amat" },
+            { english: "Are you inside the home?", foreign: "Bebe Te Emba Oma" },
+            { english: "We love to talk", foreign: "Ta Tos Koto Emot Kasa" },
+            { english: "You had a baby", foreign: "Te Sa Mak Imi" },
+            { english: "Lets Go", foreign: "Ta Kum" },
+            { english: "I use to speak Toskotokama poorly", foreign: "Me Sa Kasa Toskotokama Mos Koto" },
+            { english: "I hate the feeling of water", foreign: "Me Tos Mos Koto Emot Boma Akua" },
+            { english: "We are strong Together", foreign: "Ta Bata Komo" },
+            { english: "I like the water and land", foreign: "Me Koto Emot Akua Komo Busa" },
+            { english: "We went to the beach", foreign: "Ta Sa Kum Akua Mos Emba Busa" },
+            { english: "What's your dad doing?", foreign: "Bebe Te Mimi Bo Su Tum" },
+            { english: "You're Fat", foreign: "Te Moto Ku" },
+            { english: "Not Funny, Didn't Laugh", foreign: "Mo Eka Mo Sa Tum Eka Emot" },
+            { english: "Good Morning", foreign: "Koto Sa Maku" },
+            { english: "This room is so hot", foreign: "Se Omau Moto Taka" },
+            { english: "I need to poo", foreign: "Me Tos Mok Mamu Mos Mako" },
+            { english: "You smell really bad", foreign: "Te Smat Tos Mos Koto" },
+            { english: "I think your daughter is beautful", foreign: "Me Emot Te Imi Be Beta Be" },
+            { english: "Clean your room", foreign: "Ata Te Omau" },
+            { english: "This food is delicious", foreign: "Se Amu Tos Metu" }
+        ];
+        
+        let currentGame = ""; // Tracks the current game mode
+        let userSentence = [];
+        let wordButtons = []; // Keeps track of word buttons for re-enabling
+
+        function showFeedback(message, isCorrect) {
+            let feedback = document.getElementById("feedback");
+            if (!feedback) {
+                feedback = document.createElement("p");
+                feedback.id = "feedback";
+                document.getElementById("game-area").appendChild(feedback);
+            }
+            feedback.textContent = message;
+            feedback.className = isCorrect ? "correct" : "incorrect";
+            
+            if (isCorrect) {
+                setTimeout(() => {
+                    if (currentGame === "matching") {
+                        startMatchingGame();
+                    } else if (currentGame === "sentence") {
+                        startSentenceGame();
+                    }
+                }, 1500);
+            }
+        }
+
+        function startMatchingGame() {
+            currentGame = "matching";
+            const gameArea = document.getElementById("game-area");
+            gameArea.innerHTML = "<h2>Match the Words</h2><p>Select the correct translation:</p>";
+
+            let question = document.createElement("p");
+            const selectedPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+            const isForeignToEnglish = Math.random() < 0.5;
+
+            question.textContent = isForeignToEnglish 
+                ? `What does "${selectedPair.foreign}" mean?` 
+                : `What is the translation of "${selectedPair.english}"?`;
+            gameArea.appendChild(question);
+
+            let options = [...wordPairs];
+            options = options.sort(() => 0.5 - Math.random()).slice(0, 4);
+            if (!options.includes(selectedPair)) options[Math.floor(Math.random() * options.length)] = selectedPair;
+
+            options.forEach(pair => {
+                let button = document.createElement("button");
+                button.textContent = isForeignToEnglish ? pair.english : pair.foreign;
+                button.onclick = () => {
+                    showFeedback(button.textContent === (isForeignToEnglish ? selectedPair.english : selectedPair.foreign) ? "Correct!" : "Incorrect", button.textContent === (isForeignToEnglish ? selectedPair.english : selectedPair.foreign));
+                };
+                gameArea.appendChild(button);
+            });
+        }
+
+        function startSentenceGame() {
+            currentGame = "sentence";
+            userSentence = [];
+            wordButtons = [];
+
+            const gameArea = document.getElementById("game-area");
+            gameArea.innerHTML = `<h2>Form the Sentence</h2><p>Arrange the words correctly:</p>`;
+            const selectedSentence = sentences[Math.floor(Math.random() * sentences.length)];
+            const isForeign = Math.random() < 0.5;
+
+            let sentenceDisplay = document.createElement("p");
+            sentenceDisplay.id = "sentence-display";
+            sentenceDisplay.textContent = `Translate: "${isForeign ? selectedSentence.english : selectedSentence.foreign}"`;
+            gameArea.appendChild(sentenceDisplay);
+
+            let userSentenceDisplay = document.createElement("p");
+            userSentenceDisplay.id = "user-sentence";
+            userSentenceDisplay.textContent = "Your Sentence: ";
+            gameArea.appendChild(userSentenceDisplay);
+
+            const words = (isForeign ? selectedSentence.foreign : selectedSentence.english).split(" ").sort(() => Math.random() - 0.5);
+            
+            words.forEach((word, index) => {
+                let button = document.createElement("div");
+                button.textContent = word;
+                button.classList.add("option");
+                button.dataset.index = index; // Assign unique index
+                button.onclick = () => toggleWordSelection(button, selectedSentence, userSentenceDisplay, isForeign);
+                wordButtons.push(button);
+                gameArea.appendChild(button);
+            });
+        }
+
+        function toggleWordSelection(button, sentence, userSentenceDisplay, isForeign) {
+            const word = button.textContent;
+            const wordIndex = button.dataset.index; // Unique identifier for duplicate words
+
+            // Check if the word is already in the sentence by its index
+            const existingIndex = userSentence.findIndex(item => item.word === word && item.index === wordIndex);
+
+            if (existingIndex !== -1) {
+                // Remove word from sentence
+                userSentence.splice(existingIndex, 1);
+                button.classList.remove("selected");
+                button.style.background = "#ddd";
+                button.onclick = () => toggleWordSelection(button, sentence, userSentenceDisplay, isForeign);
+            } else {
+                // Add word to sentence
+                userSentence.push({ word, index: wordIndex });
+                button.classList.add("selected");
+                button.style.background = "#4CAF50";
+                button.onclick = () => toggleWordSelection(button, sentence, userSentenceDisplay, isForeign);
+            }
+
+            // Update sentence display
+            userSentenceDisplay.textContent = "Your Sentence: " + userSentence.map(item => item.word).join(" ");
+
+            // Check if sentence is correct
+            if (userSentence.map(item => item.word).join(" ") === (isForeign ? sentence.foreign : sentence.english)) {
+                showFeedback("Correct!", true);
+            }
+        }
+    </script>
+</body>
+</html>
