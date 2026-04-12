@@ -19,8 +19,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-// Initialize Firebase and Firestore
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Get references to our HTML elements
