@@ -42,18 +42,56 @@ header h1 {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 15px;
 }
 
+/* New Wrapper to handle alignment */
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+}
+
+/* Push your messages to the right */
+.message-wrapper.sent {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+/* Keep others' messages on the left */
+.message-wrapper.received {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+/* Style for the username text */
+.sender-name {
+    font-size: 0.75rem;
+    color: #65676b;
+    margin-bottom: 4px;
+    padding: 0 5px;
+}
+
+/* Base message bubble */
 .message {
-    background: #e4e6eb;
-    color: #050505;
     padding: 10px 15px;
     border-radius: 18px;
-    max-width: 80%;
     word-wrap: break-word;
-    align-self: flex-start;
     line-height: 1.4;
+}
+
+/* Color for your messages */
+.message-wrapper.sent .message {
+    background: #0084ff;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+/* Color for others' messages */
+.message-wrapper.received .message {
+    background: #e4e6eb;
+    color: #050505;
+    border-bottom-left-radius: 4px;
 }
 
 form {
