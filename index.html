@@ -9,7 +9,7 @@
 <body>
     <div class="chat-container">
         <header>
-            <h1>Global Chat</h1>
+            <h1 id="header-title">Global Chat</h1>
         </header>
         
         <div class="messages" id="messages-container">
@@ -22,11 +22,10 @@
     </div>
 
     <script type="module">
-        // Import Firebase core and Firestore database modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // TODO: Replace this object with your actual Firebase project configuration!
+        // TODO: Paste your actual Firebase config here!
         const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
@@ -37,49 +36,75 @@
           measurementId: "G-8P070D3ENF"
         };
 
-        // Initialize Firebase and Firestore
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Get references to our HTML elements
+        // --- NEW: Ask the user for their name when the page loads ---
+        let myUsername = prompt("Choose a username:", "Guest" + Math.floor(Math.random() * 1000));
+        // If they click cancel, give them a default name
+        if (!myUsername || myUsername.trim() === "") {
+            myUsername = "Anonymous";
+        }
+        
+        // Update the header so they know who they are logged in as
+        document.getElementById('header-title').textContent = "Chatting as: " + myUsername;
+
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         const messagesContainer = document.getElementById('messages-container');
 
-        // Reference the "messages" collection in the database, ordered by time
         const messagesRef = collection(db, 'messages');
         const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
-        // Listen for updates in real-time
         onSnapshot(q, (snapshot) => {
-            messagesContainer.innerHTML = ''; // Clear current messages
+            messagesContainer.innerHTML = ''; 
             
             snapshot.forEach((doc) => {
                 const data = doc.data();
+                
+                // Create the wrapper that will align left or right
+                const wrapperDiv = document.createElement('div');
+                wrapperDiv.classList.add('message-wrapper');
+                
+                // --- NEW: Check if the message belongs to the current user ---
+                if (data.username === myUsername) {
+                    wrapperDiv.classList.add('sent'); // Push right
+                } else {
+                    wrapperDiv.classList.add('received'); // Push left
+                }
+
+                // Create the username label
+                const nameDiv = document.createElement('div');
+                nameDiv.classList.add('sender-name');
+                nameDiv.textContent = data.username || "Unknown";
+
+                // Create the actual message bubble
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message');
                 messageDiv.textContent = data.text;
-                messagesContainer.appendChild(messageDiv);
+
+                // Put it all together
+                wrapperDiv.appendChild(nameDiv);
+                wrapperDiv.appendChild(messageDiv);
+                messagesContainer.appendChild(wrapperDiv);
             });
             
-            // Automatically scroll to the newest message at the bottom
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
 
-        // Handle sending a new message
         messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevent the page from refreshing
+            e.preventDefault(); 
             
             const text = messageInput.value.trim();
             
             if (text) {
                 try {
-                    // Push the message to Firebase
                     await addDoc(messagesRef, {
                         text: text,
+                        username: myUsername, // --- NEW: Save the username to the database ---
                         createdAt: serverTimestamp()
                     });
-                    // Clear the input box after sending
                     messageInput.value = '';
                 } catch (error) {
                     console.error("Error sending message: ", error);
