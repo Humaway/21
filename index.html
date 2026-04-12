@@ -3,13 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Direct Messaging</title>
-    <link rel="stylesheet" href="style.css">
+    <title>LMessage</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background-color: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #e0e0e0; }
+        .container { width: 100%; max-width: 450px; background: #1e1e1e; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; height: 85vh; overflow: hidden; }
+        .hidden { display: none !important; }
+        header { background: #005c4b; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; }
+        header h1, header h2 { margin: 0; font-size: 1.1rem; font-weight: 500; }
+        .small-btn { background: rgba(255,255,255,0.1); padding: 6px 12px; font-size: 0.85rem; border: none; color: white; border-radius: 4px; cursor: pointer; }
+        .small-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Auth Screen */
+        #auth-screen { justify-content: center; padding: 30px; height: auto; }
+        #auth-screen h2 { text-align: center; margin-bottom: 20px; color: #fff; }
+        #auth-form { display: flex; flex-direction: column; gap: 15px; }
+        .auth-buttons { display: flex; gap: 10px; }
+        .auth-buttons button { flex: 1; margin: 0; }
+        .error { color: #ff6b6b; font-size: 0.85rem; text-align: center; margin: 0; }
+        
+        /* User List */
+        .user-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .user-card { padding: 15px 20px; margin-bottom: 8px; background: #2c2c2c; border-radius: 8px; cursor: pointer; font-weight: 500; border: 1px solid #3d3d3d; transition: background 0.2s; }
+        .user-card:hover { background: #3d3d3d; }
+        
+        /* Chat Area */
+        .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #0b141a; }
+        .message-wrapper { display: flex; flex-direction: column; max-width: 85%; }
+        .message-wrapper.sent { align-self: flex-end; align-items: flex-end; }
+        .message-wrapper.received { align-self: flex-start; align-items: flex-start; }
+        .message { padding: 8px 12px; border-radius: 8px; word-wrap: break-word; line-height: 1.4; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        .message-wrapper.sent .message { background: #005c4b; color: #e9edef; border-top-right-radius: 0; }
+        .message-wrapper.received .message { background: #202c33; color: #e9edef; border-top-left-radius: 0; }
+        .system-msg { align-self: center; background: #182229; color: #8696a0; font-size: 0.75rem; padding: 5px 10px; border-radius: 10px; text-align: center; margin: 10px 0; }
+        
+        form.chat-input-area { display: flex; padding: 10px; background: #202c33; gap: 10px; }
+        input { flex: 1; padding: 12px 15px; border: none; border-radius: 20px; outline: none; font-size: 0.95rem; background: #2a3942; color: white; }
+        input::placeholder { color: #8696a0; }
+        button { background: #00a884; color: #111b21; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #008f6f; }
+        #btn-signup { background: #2a3942; color: white; }
+    </style>
 </head>
 <body>
 
     <div id="auth-screen" class="container">
-        <h2>Welcome to Chat</h2>
+        <h2>LMessage V0.1</h2>
         <form id="auth-form">
             <input type="text" id="auth-username" placeholder="Username (for Sign Up only)">
             <input type="email" id="auth-email" placeholder="Email" required>
@@ -27,8 +70,7 @@
             <h1 id="current-user-display">Users</h1>
             <button id="btn-logout" class="small-btn">Log Out</button>
         </header>
-        <div class="user-list" id="user-list">
-            </div>
+        <div class="user-list" id="user-list"></div>
     </div>
 
     <div id="chat-screen" class="container hidden">
@@ -36,11 +78,9 @@
             <button id="btn-back" class="small-btn">← Back</button>
             <h1 id="chat-with-name">Chat</h1>
         </header>
-        
         <div class="messages" id="messages-container"></div>
-
-        <form id="message-form">
-            <input type="text" id="message-input" placeholder="Type a message..." required autocomplete="off">
+        <form id="message-form" class="chat-input-area">
+            <input type="text" id="message-input" placeholder="Message..." required autocomplete="off">
             <button type="submit">Send</button>
         </form>
     </div>
@@ -69,15 +109,17 @@
         let currentUser = null;
         let currentChatUser = null;
         let currentChatId = null;
-        let unsubscribeChat = null; // Used to stop listening to old chats when switching
+        let unsubscribeChat = null;
+        
+        // E2EE Keys for the current user
+        let myPrivateKey = null;
+        let myPublicKey = null;
 
-        // DOM Elements
         const authScreen = document.getElementById('auth-screen');
         const usersScreen = document.getElementById('users-screen');
         const chatScreen = document.getElementById('chat-screen');
         const authError = document.getElementById('auth-error');
 
-        // Helper to switch screens
         function showScreen(screen) {
             authScreen.classList.add('hidden');
             usersScreen.classList.add('hidden');
@@ -85,13 +127,36 @@
             screen.classList.remove('hidden');
         }
 
-        // --- AUTHENTICATION LOGIC ---
-        
-        // Listen for login/logout state changes
-        onAuthStateChanged(auth, (user) => {
+        // --- KEY MANAGEMENT LOGIC ---
+        // This function checks the browser storage for encryption keys. 
+        // If they don't exist, it generates them securely.
+        async function ensureE2EEKeys(userUid) {
+            myPrivateKey = localStorage.getItem('privKey_' + userUid);
+            myPublicKey = localStorage.getItem('pubKey_' + userUid);
+
+            if (!myPrivateKey || !myPublicKey) {
+                console.log("Generating new E2EE keys. This might take a second...");
+                const crypt = new JSEncrypt({default_key_size: 1024});
+                crypt.getKey();
+                myPrivateKey = crypt.getPrivateKey();
+                myPublicKey = crypt.getPublicKey();
+                
+                // Save locally so we don't have to generate them again
+                localStorage.setItem('privKey_' + userUid, myPrivateKey);
+                localStorage.setItem('pubKey_' + userUid, myPublicKey);
+
+                // Publish the Public Key to Firebase so friends can send us messages
+                await setDoc(doc(db, "users", userUid), { publicKey: myPublicKey }, { merge: true });
+            }
+        }
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                document.getElementById('current-user-display').textContent = "Logged in";
+                document.getElementById('current-user-display').textContent = "Setting up secure connection...";
+                await ensureE2EEKeys(user.uid); // Ensure keys exist before entering
+                document.getElementById('current-user-display').textContent = "Secure Chats";
                 showScreen(usersScreen);
                 loadUsers();
             } else {
@@ -100,149 +165,158 @@
             }
         });
 
-        // Sign Up
         document.getElementById('btn-signup').addEventListener('click', async () => {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const username = document.getElementById('auth-username').value;
-
-            if (!username) return authError.textContent = "Username required for Sign Up";
+            if (!username) return authError.textContent = "Username required";
 
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                // Save user profile to Firestore
-                await setDoc(doc(db, "users", userCredential.user.uid), {
-                    uid: userCredential.user.uid,
-                    email: email,
-                    username: username
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                // Profile saved to database WITHOUT the public key yet. 
+                // The onAuthStateChanged listener will immediately fire and generate/upload the key.
+                await setDoc(doc(db, "users", cred.user.uid), {
+                    uid: cred.user.uid, email: email, username: username
                 });
                 authError.textContent = "";
-            } catch (error) {
-                authError.textContent = error.message;
-            }
+            } catch (error) { authError.textContent = error.message; }
         });
 
-        // Log In
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            
             try {
-                await signInWithEmailAndPassword(auth, email, password);
+                await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value);
                 authError.textContent = "";
-            } catch (error) {
-                authError.textContent = error.message;
-            }
+            } catch (error) { authError.textContent = error.message; }
         });
 
-        // Log Out
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-
-        // --- USER LIST LOGIC ---
-
+        // --- USER LIST ---
         function loadUsers() {
-            const usersRef = collection(db, 'users');
-            onSnapshot(usersRef, (snapshot) => {
+            onSnapshot(collection(db, 'users'), (snapshot) => {
                 const userList = document.getElementById('user-list');
-                userList.innerHTML = ''; // Clear list
+                userList.innerHTML = ''; 
                 
                 snapshot.forEach((doc) => {
                     const userData = doc.data();
-                    // Don't show ourselves in the list
                     if (userData.uid !== currentUser.uid) {
                         const userDiv = document.createElement('div');
                         userDiv.classList.add('user-card');
-                        userDiv.textContent = userData.username;
-                        
-                        // When clicking a user, open DM
+                        // Show a padlock if they have generated a public key
+                        userDiv.textContent = userData.username + (userData.publicKey ? " 🔒" : "");
                         userDiv.addEventListener('click', () => openChat(userData));
                         userList.appendChild(userDiv);
-                    } else {
-                        document.getElementById('current-user-display').textContent = "Logged in as: " + userData.username;
                     }
                 });
             });
         }
 
-
         // --- CHAT LOGIC ---
-
-        // Clever trick: Sort the two User IDs alphabetically and join them. 
-        // This ensures User A and User B always share the exact same Chat Room ID.
-        function generateChatId(uid1, uid2) {
-            return [uid1, uid2].sort().join('_');
-        }
+        function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
 
         function openChat(targetUser) {
+            if (!targetUser.publicKey) {
+                alert("This user hasn't set up their secure keys yet. They need to log in first.");
+                return;
+            }
             currentChatUser = targetUser;
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
-            
-            document.getElementById('chat-with-name').textContent = "Chat with " + targetUser.username;
+            document.getElementById('chat-with-name').textContent = targetUser.username;
             showScreen(chatScreen);
-            
             loadChatMessages();
         }
 
-        // Back button to user list
         document.getElementById('btn-back').addEventListener('click', () => {
-            if (unsubscribeChat) unsubscribeChat(); // Stop listening to this chat
+            if (unsubscribeChat) unsubscribeChat();
             showScreen(usersScreen);
         });
 
         function loadChatMessages() {
-            const messagesContainer = document.getElementById('messages-container');
-            // Look inside the specific chat room for these two users
-            const chatRef = collection(db, 'chats', currentChatId, 'messages');
-            const q = query(chatRef, orderBy('createdAt', 'asc'));
+            const container = document.getElementById('messages-container');
+            const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
 
-            // Unsubscribe from previous chat if it exists to prevent memory leaks
             if (unsubscribeChat) unsubscribeChat();
 
+            // Add a visual indicator that the room is secure
+            container.innerHTML = '<div class="system-msg">🔒 Messages are end-to-end encrypted. Nobody outside of this chat, not even Firebase, can read them.</div>';
+
             unsubscribeChat = onSnapshot(q, (snapshot) => {
-                messagesContainer.innerHTML = ''; 
+                // We don't want to clear the whole container every time, just append new ones.
+                // For simplicity in this prototype, we rebuild the list, keeping the system msg.
+                container.innerHTML = '<div class="system-msg">🔒 Messages are end-to-end encrypted. Nobody outside of this chat, not even Firebase, can read them.</div>';
                 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
+                    let decryptedText = "[Unable to decrypt]";
+                    
+                    try {
+                        // 1. Determine which encrypted key belongs to us
+                        const encryptedSymmetricKey = (data.senderId === currentUser.uid) ? data.encKeySender : data.encKeyReceiver;
+                        
+                        // 2. Use our Private Key to unlock the Symmetric Key
+                        const decryptor = new JSEncrypt();
+                        decryptor.setPrivateKey(myPrivateKey);
+                        const symmetricKey = decryptor.decrypt(encryptedSymmetricKey);
+
+                        // 3. Use the unlocked Symmetric Key to unlock the actual message
+                        if (symmetricKey) {
+                            const bytes = CryptoJS.AES.decrypt(data.ciphertext, symmetricKey);
+                            decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                        }
+                    } catch (e) {
+                        decryptedText = "[Decryption Error]";
+                    }
+
                     const wrapperDiv = document.createElement('div');
                     wrapperDiv.classList.add('message-wrapper');
-                    
-                    if (data.senderId === currentUser.uid) {
-                        wrapperDiv.classList.add('sent');
-                    } else {
-                        wrapperDiv.classList.add('received');
-                    }
+                    wrapperDiv.classList.add(data.senderId === currentUser.uid ? 'sent' : 'received');
 
                     const messageDiv = document.createElement('div');
                     messageDiv.classList.add('message');
-                    messageDiv.textContent = data.text;
+                    messageDiv.textContent = decryptedText;
 
                     wrapperDiv.appendChild(messageDiv);
-                    messagesContainer.appendChild(wrapperDiv);
+                    container.appendChild(wrapperDiv);
                 });
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                container.scrollTop = container.scrollHeight;
             });
         }
 
-        // Send a DM
+        // Send an E2EE Message
         document.getElementById('message-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
-            const messageInput = document.getElementById('message-input');
-            const text = messageInput.value.trim();
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
             
-            if (text && currentChatId) {
+            if (text && currentChatId && currentChatUser.publicKey) {
                 try {
-                    const chatRef = collection(db, 'chats', currentChatId, 'messages');
-                    await addDoc(chatRef, {
-                        text: text,
+                    // 1. Create a random "Symmetric Key" just for this specific message
+                    const symmetricKey = CryptoJS.lib.WordArray.random(16).toString();
+                    
+                    // 2. Encrypt the actual message with this random key
+                    const ciphertext = CryptoJS.AES.encrypt(text, symmetricKey).toString();
+
+                    // 3. Lock a copy of the random key using the Sender's (Your) Public Key 
+                    const encryptForSender = new JSEncrypt();
+                    encryptForSender.setPublicKey(myPublicKey);
+                    const encKeySender = encryptForSender.encrypt(symmetricKey);
+
+                    // 4. Lock a copy of the random key using the Receiver's (Friend's) Public Key
+                    const encryptForReceiver = new JSEncrypt();
+                    encryptForReceiver.setPublicKey(currentChatUser.publicKey);
+                    const encKeyReceiver = encryptForReceiver.encrypt(symmetricKey);
+
+                    // 5. Send only the locked pieces to the server
+                    await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+                        ciphertext: ciphertext,
+                        encKeySender: encKeySender,
+                        encKeyReceiver: encKeyReceiver,
                         senderId: currentUser.uid,
                         createdAt: serverTimestamp()
                     });
-                    messageInput.value = '';
-                } catch (error) {
-                    console.error("Error sending message: ", error);
-                }
+                    input.value = '';
+                } catch (error) { console.error("Error sending:", error); }
             }
         });
     </script>
