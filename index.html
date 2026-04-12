@@ -3,29 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Chat</title>
+    <title>Direct Messaging</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="chat-container">
+
+    <div id="auth-screen" class="container">
+        <h2>Welcome to Chat</h2>
+        <form id="auth-form">
+            <input type="text" id="auth-username" placeholder="Username (for Sign Up only)">
+            <input type="email" id="auth-email" placeholder="Email" required>
+            <input type="password" id="auth-password" placeholder="Password" required>
+            <div class="auth-buttons">
+                <button type="submit" id="btn-login">Log In</button>
+                <button type="button" id="btn-signup">Sign Up</button>
+            </div>
+            <p id="auth-error" class="error"></p>
+        </form>
+    </div>
+
+    <div id="users-screen" class="container hidden">
         <header>
-            <h1 id="header-title">Global Chat</h1>
+            <h1 id="current-user-display">Users</h1>
+            <button id="btn-logout" class="small-btn">Log Out</button>
+        </header>
+        <div class="user-list" id="user-list">
+            </div>
+    </div>
+
+    <div id="chat-screen" class="container hidden">
+        <header>
+            <button id="btn-back" class="small-btn">← Back</button>
+            <h1 id="chat-with-name">Chat</h1>
         </header>
         
-        <div class="messages" id="messages-container">
-            </div>
+        <div class="messages" id="messages-container"></div>
 
         <form id="message-form">
-            <input type="text" id="message-input" placeholder="Type your message..." required autocomplete="off">
+            <input type="text" id="message-input" placeholder="Type a message..." required autocomplete="off">
             <button type="submit">Send</button>
         </form>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // TODO: Paste your actual Firebase config here!
+        // TODO: PASTE YOUR FIREBASE CONFIG HERE
         const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
@@ -36,73 +61,182 @@
           measurementId: "G-8P070D3ENF"
         };
 
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // --- NEW: Ask the user for their name when the page loads ---
-        let myUsername = prompt("Choose a username:", "Guest" + Math.floor(Math.random() * 1000));
-        // If they click cancel, give them a default name
-        if (!myUsername || myUsername.trim() === "") {
-            myUsername = "Anonymous";
+        // State variables
+        let currentUser = null;
+        let currentChatUser = null;
+        let currentChatId = null;
+        let unsubscribeChat = null; // Used to stop listening to old chats when switching
+
+        // DOM Elements
+        const authScreen = document.getElementById('auth-screen');
+        const usersScreen = document.getElementById('users-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const authError = document.getElementById('auth-error');
+
+        // Helper to switch screens
+        function showScreen(screen) {
+            authScreen.classList.add('hidden');
+            usersScreen.classList.add('hidden');
+            chatScreen.classList.add('hidden');
+            screen.classList.remove('hidden');
         }
+
+        // --- AUTHENTICATION LOGIC ---
         
-        // Update the header so they know who they are logged in as
-        document.getElementById('header-title').textContent = "Chatting as: " + myUsername;
-
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-        const messagesContainer = document.getElementById('messages-container');
-
-        const messagesRef = collection(db, 'messages');
-        const q = query(messagesRef, orderBy('createdAt', 'asc'));
-
-        onSnapshot(q, (snapshot) => {
-            messagesContainer.innerHTML = ''; 
-            
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                
-                // Create the wrapper that will align left or right
-                const wrapperDiv = document.createElement('div');
-                wrapperDiv.classList.add('message-wrapper');
-                
-                // --- NEW: Check if the message belongs to the current user ---
-                if (data.username === myUsername) {
-                    wrapperDiv.classList.add('sent'); // Push right
-                } else {
-                    wrapperDiv.classList.add('received'); // Push left
-                }
-
-                // Create the username label
-                const nameDiv = document.createElement('div');
-                nameDiv.classList.add('sender-name');
-                nameDiv.textContent = data.username || "Unknown";
-
-                // Create the actual message bubble
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message');
-                messageDiv.textContent = data.text;
-
-                // Put it all together
-                wrapperDiv.appendChild(nameDiv);
-                wrapperDiv.appendChild(messageDiv);
-                messagesContainer.appendChild(wrapperDiv);
-            });
-            
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Listen for login/logout state changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('current-user-display').textContent = "Logged in";
+                showScreen(usersScreen);
+                loadUsers();
+            } else {
+                currentUser = null;
+                showScreen(authScreen);
+            }
         });
 
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); 
+        // Sign Up
+        document.getElementById('btn-signup').addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const username = document.getElementById('auth-username').value;
+
+            if (!username) return authError.textContent = "Username required for Sign Up";
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                // Save user profile to Firestore
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    uid: userCredential.user.uid,
+                    email: email,
+                    username: username
+                });
+                authError.textContent = "";
+            } catch (error) {
+                authError.textContent = error.message;
+            }
+        });
+
+        // Log In
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
             
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                authError.textContent = "";
+            } catch (error) {
+                authError.textContent = error.message;
+            }
+        });
+
+        // Log Out
+        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+
+        // --- USER LIST LOGIC ---
+
+        function loadUsers() {
+            const usersRef = collection(db, 'users');
+            onSnapshot(usersRef, (snapshot) => {
+                const userList = document.getElementById('user-list');
+                userList.innerHTML = ''; // Clear list
+                
+                snapshot.forEach((doc) => {
+                    const userData = doc.data();
+                    // Don't show ourselves in the list
+                    if (userData.uid !== currentUser.uid) {
+                        const userDiv = document.createElement('div');
+                        userDiv.classList.add('user-card');
+                        userDiv.textContent = userData.username;
+                        
+                        // When clicking a user, open DM
+                        userDiv.addEventListener('click', () => openChat(userData));
+                        userList.appendChild(userDiv);
+                    } else {
+                        document.getElementById('current-user-display').textContent = "Logged in as: " + userData.username;
+                    }
+                });
+            });
+        }
+
+
+        // --- CHAT LOGIC ---
+
+        // Clever trick: Sort the two User IDs alphabetically and join them. 
+        // This ensures User A and User B always share the exact same Chat Room ID.
+        function generateChatId(uid1, uid2) {
+            return [uid1, uid2].sort().join('_');
+        }
+
+        function openChat(targetUser) {
+            currentChatUser = targetUser;
+            currentChatId = generateChatId(currentUser.uid, targetUser.uid);
+            
+            document.getElementById('chat-with-name').textContent = "Chat with " + targetUser.username;
+            showScreen(chatScreen);
+            
+            loadChatMessages();
+        }
+
+        // Back button to user list
+        document.getElementById('btn-back').addEventListener('click', () => {
+            if (unsubscribeChat) unsubscribeChat(); // Stop listening to this chat
+            showScreen(usersScreen);
+        });
+
+        function loadChatMessages() {
+            const messagesContainer = document.getElementById('messages-container');
+            // Look inside the specific chat room for these two users
+            const chatRef = collection(db, 'chats', currentChatId, 'messages');
+            const q = query(chatRef, orderBy('createdAt', 'asc'));
+
+            // Unsubscribe from previous chat if it exists to prevent memory leaks
+            if (unsubscribeChat) unsubscribeChat();
+
+            unsubscribeChat = onSnapshot(q, (snapshot) => {
+                messagesContainer.innerHTML = ''; 
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const wrapperDiv = document.createElement('div');
+                    wrapperDiv.classList.add('message-wrapper');
+                    
+                    if (data.senderId === currentUser.uid) {
+                        wrapperDiv.classList.add('sent');
+                    } else {
+                        wrapperDiv.classList.add('received');
+                    }
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message');
+                    messageDiv.textContent = data.text;
+
+                    wrapperDiv.appendChild(messageDiv);
+                    messagesContainer.appendChild(wrapperDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+        }
+
+        // Send a DM
+        document.getElementById('message-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const messageInput = document.getElementById('message-input');
             const text = messageInput.value.trim();
             
-            if (text) {
+            if (text && currentChatId) {
                 try {
-                    await addDoc(messagesRef, {
+                    const chatRef = collection(db, 'chats', currentChatId, 'messages');
+                    await addDoc(chatRef, {
                         text: text,
-                        username: myUsername, // --- NEW: Save the username to the database ---
+                        senderId: currentUser.uid,
                         createdAt: serverTimestamp()
                     });
                     messageInput.value = '';
