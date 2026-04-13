@@ -24,25 +24,20 @@
         [data-theme="light"] { --bg-primary: #ffffff; --bg-secondary: #f2f3f5; --bg-tertiary: #e3e5e8; --bg-input: #ebedef; --text-normal: #2e3338; --text-muted: #747f8d; --text-header: #060607; --accent: #5865F2; --divider: #e3e5e8; }
         [data-theme="hacker"] { --bg-primary: #0a0a0a; --bg-secondary: #000000; --bg-tertiary: #111111; --bg-input: #1a1a1a; --text-normal: #00ff00; --text-muted: #008800; --text-header: #00ff00; --accent: #00cc00; --divider: #222222; }
         [data-theme="sunset"] { --bg-primary: #2d1b2e; --bg-secondary: #1f1320; --bg-tertiary: #3a233b; --bg-input: #4a2d4b; --text-normal: #fcd5ce; --text-muted: #d8b4e2; --text-header: #ffb5a7; --accent: #ff9f1c; --divider: #5a375c; }
-        
-        /* Naori Mode - Bioluminescent Beach */
-        [data-theme="naori"] { 
-            --bg-primary: #0a1128; 
-            --bg-secondary: #1c2541; 
-            --bg-tertiary: #050a1f; 
-            --bg-input: #2a3b5c; 
-            --text-normal: #80ffdb; 
-            --text-muted: #5390d9; 
-            --text-header: #ffffff;
-            --accent: #00f5d4; 
-            --accent-hover: #00b4d8;
-            --divider: #1a659e;
-        }
+        [data-theme="naori"] { --bg-primary: #0a1128; --bg-secondary: #1c2541; --bg-tertiary: #050a1f; --bg-input: #2a3b5c; --text-normal: #80ffdb; --text-muted: #5390d9; --text-header: #ffffff; --accent: #00f5d4; --accent-hover: #00b4d8; --divider: #1a659e; }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-primary); color: var(--text-normal); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
         #app-container { display: flex; width: 100vw; height: 100dvh; position: relative; }
         .hidden { display: none !important; }
+
+        /* --- In-App Toast Notifications --- */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 90vw; }
+        .toast { background: var(--bg-secondary); border-left: 4px solid var(--accent); color: var(--text-normal); padding: 15px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.3s ease-out; position: relative; overflow: hidden; }
+        .toast-title { font-weight: bold; color: var(--text-header); margin-bottom: 5px; font-size: 0.95rem; }
+        .toast-body { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.fade-out { opacity: 0; transition: opacity 0.3s ease-out; }
 
         /* --- Modals & Auth --- */
         .modal { background: var(--bg-secondary); padding: 40px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; position: absolute; max-height: 90dvh; overflow-y: auto; }
@@ -77,21 +72,8 @@
         .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s; position: relative; }
         .user-item:hover { background: var(--bg-input); color: var(--text-normal); }
         
-        /* Pulsing Unread Dot */
-        .unread-dot { 
-            width: 12px; height: 12px; 
-            background-color: #ff3b30; 
-            border-radius: 50%; 
-            position: absolute; right: 15px; 
-            display: none; 
-            box-shadow: 0 0 8px #ff3b30;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
-        }
+        .unread-dot { width: 12px; height: 12px; background-color: #ff3b30; border-radius: 50%; position: absolute; right: 15px; display: none; box-shadow: 0 0 8px #ff3b30; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); } }
 
         #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
         .user-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
@@ -104,12 +86,11 @@
         .header-actions { margin-left: auto; display: flex; gap: 10px; }
         #btn-start-call { background: var(--bg-tertiary); color: var(--text-normal); padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
 
-        /* Pinned Messages Bar */
         #pinned-bar { background: var(--bg-secondary); border-bottom: 1px solid var(--divider); padding: 10px 16px; max-height: 100px; overflow-y: auto; font-size: 0.85rem; color: var(--text-muted); display: none; flex-shrink: 0; }
         .pinned-msg { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 5px; background: var(--bg-tertiary); padding: 5px 10px; border-radius: 4px; }
         .pinned-header { font-weight: bold; color: var(--text-header); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
 
-        #messages-container { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; }
+        #messages-container { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; position: relative; }
         .message { display: flex; padding: 8px 16px; margin-top: 8px; position: relative; }
         .message:hover { background: rgba(4, 4, 5, 0.07); }
         
@@ -126,7 +107,8 @@
         .msg-text { color: var(--text-normal); font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
         
         .msg-image { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 5px; object-fit: contain; background: var(--bg-tertiary); }
-        .read-receipt { text-align: right; font-size: 0.75rem; color: var(--accent); padding-right: 16px; margin-top: -5px; font-weight: bold; }
+        
+        .read-receipt { text-align: right; font-size: 0.75rem; color: var(--accent); padding-right: 16px; margin-top: 5px; margin-bottom: 10px; font-weight: bold; }
 
         #input-area { padding: 0 16px 24px 16px; }
         #message-form { display: flex; background: var(--bg-input); border-radius: 8px; padding: 10px 16px; align-items: center; gap: 10px; }
@@ -151,6 +133,8 @@
     </style>
 </head>
 <body>
+
+    <div id="toast-container"></div>
 
     <div id="auth-screen" class="modal-overlay">
         <div class="modal">
@@ -231,7 +215,8 @@
                 <div id="pinned-content"></div>
             </div>
 
-            <div id="messages-container"></div>
+            <div id="messages-container">
+                </div>
             
             <div id="input-area" class="hidden">
                 <form id="message-form">
@@ -250,7 +235,7 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
-       const firebaseConfig = {
+        const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -270,12 +255,37 @@
         let allUsersMap = {}; 
         let currentChatUser = null;
         let currentChatId = null;
+        
         let unsubscribeChat = null;
+        let unsubscribeMetaRealtime = null; // New listener for real-time read receipts
         let unsubscribeCallListener = null;
         let unreadListeners = []; 
 
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
+
+        // --- IN-APP TOAST ENGINE ---
+        function showToast(title, body, onClickCallback) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`;
+            
+            toast.addEventListener('click', () => {
+                if(onClickCallback) onClickCallback();
+                toast.remove();
+            });
+
+            container.appendChild(toast);
+
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.classList.add('fade-out');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 4000);
+        }
 
         window.setTheme = function(themeName) {
             document.body.setAttribute('data-theme', themeName);
@@ -286,15 +296,7 @@
         document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('hidden'));
         document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
 
-        // Request Notifications on User Action (The Fix!)
-        function requestNotificationPermission() {
-            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission();
-            }
-        }
-
         document.getElementById('btn-signup').addEventListener('click', async () => {
-            requestNotificationPermission(); // Trigger on click
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const username = document.getElementById('auth-username').value;
@@ -307,7 +309,6 @@
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            requestNotificationPermission(); // Trigger on click
             try { await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value); } 
             catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
@@ -325,6 +326,7 @@
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('settings-modal').classList.add('hidden');
                 if (unsubscribeCallListener) unsubscribeCallListener();
+                if (unsubscribeMetaRealtime) unsubscribeMetaRealtime();
                 unreadListeners.forEach(unsub => unsub());
             }
         });
@@ -393,14 +395,11 @@
                             // Visual Dot
                             if (dot) dot.style.display = currentlyUnread ? 'block' : 'none';
                             
-                            // System Push Notification
+                            // In-App Toast Notification (Replaces the broken browser notification)
                             if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) {
-                                if ("Notification" in window && Notification.permission === "granted") {
-                                    new Notification("New Message", {
-                                        body: `You have a new message from ${userData.username}`,
-                                        icon: userData.avatar || ''
-                                    });
-                                }
+                                showToast(`New Message from ${userData.username}`, "Tap to view", () => {
+                                    openChat(userData);
+                                });
                             }
                             previousUnreadState = currentlyUnread;
                         });
@@ -424,7 +423,9 @@
             document.getElementById('btn-start-call').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
             
+            // Mark as read immediately
             setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }, { merge: true });
+
             loadChatMessages();
         }
 
@@ -445,18 +446,47 @@
             const pinnedBar = document.getElementById('pinned-bar');
             const pinnedContent = document.getElementById('pinned-content');
             
-            const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
+            // Clean up previous listeners
             if (unsubscribeChat) unsubscribeChat();
+            if (unsubscribeMetaRealtime) unsubscribeMetaRealtime();
 
-            unsubscribeChat = onSnapshot(q, async (snapshot) => {
+            // Track state for the Read Receipt UI
+            let isMyLastMessage = false;
+            let hasFriendRead = false;
+
+            // Helper function to draw the Read Receipt at the bottom
+            const updateReadReceiptUI = () => {
+                let receiptEl = document.getElementById('dynamic-read-receipt');
+                if (!receiptEl) {
+                    receiptEl = document.createElement('div');
+                    receiptEl.id = 'dynamic-read-receipt';
+                    receiptEl.classList.add('read-receipt');
+                    container.appendChild(receiptEl);
+                }
+                
+                // Only show it if I sent the last message AND my friend opened the chat
+                if (isMyLastMessage && hasFriendRead) {
+                    receiptEl.textContent = 'Read';
+                    receiptEl.style.display = 'block';
+                } else {
+                    receiptEl.style.display = 'none';
+                }
+            };
+
+            // 1. Real-time listener for friend reading the message
+            unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
+                const metaData = metaSnap.data();
+                hasFriendRead = metaData && metaData.unreadBy === null;
+                updateReadReceiptUI();
+            });
+
+            // 2. Real-time listener for the actual messages
+            const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
+            unsubscribeChat = onSnapshot(q, (snapshot) => {
                 container.innerHTML = ''; 
                 pinnedContent.innerHTML = '';
                 let hasPins = false;
                 let lastMessageData = null;
-
-                const metaSnap = await getDoc(doc(db, 'chats_meta', currentChatId));
-                const metaData = metaSnap.data();
-                const friendHasRead = metaData && metaData.unreadBy === null;
 
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
@@ -514,12 +544,11 @@
 
                 pinnedBar.style.display = hasPins ? 'block' : 'none';
 
-                if (lastMessageData && lastMessageData.senderId === currentUser.uid && friendHasRead) {
-                    const readDiv = document.createElement('div');
-                    readDiv.classList.add('read-receipt');
-                    readDiv.textContent = 'Read';
-                    container.appendChild(readDiv);
-                }
+                // Check if the very last message in the chat belongs to me
+                isMyLastMessage = lastMessageData && lastMessageData.senderId === currentUser.uid;
+                
+                // Re-draw the read receipt at the bottom
+                updateReadReceiptUI();
 
                 container.scrollTop = container.scrollHeight;
             });
@@ -582,6 +611,7 @@
             }
         });
 
+        // --- WEBRTC CALLING ---
         async function setupWebcam() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             remoteStream = new MediaStream();
@@ -622,6 +652,7 @@
                         document.getElementById('call-modal').classList.remove('hidden');
                         document.getElementById('call-status').textContent = "Incoming Call...";
                         document.getElementById('btn-answer-call').classList.remove('hidden');
+                        showToast("Incoming Video Call", "Tap Answer in the modal to connect.");
                     }
                     if (change.type === 'modified' && data.status === 'ended') endCall();
                 });
