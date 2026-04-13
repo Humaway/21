@@ -25,18 +25,18 @@
         [data-theme="hacker"] { --bg-primary: #0a0a0a; --bg-secondary: #000000; --bg-tertiary: #111111; --bg-input: #1a1a1a; --text-normal: #00ff00; --text-muted: #008800; --text-header: #00ff00; --accent: #00cc00; --divider: #222222; }
         [data-theme="sunset"] { --bg-primary: #2d1b2e; --bg-secondary: #1f1320; --bg-tertiary: #3a233b; --bg-input: #4a2d4b; --text-normal: #fcd5ce; --text-muted: #d8b4e2; --text-header: #ffb5a7; --accent: #ff9f1c; --divider: #5a375c; }
         
-        /* NEW: Naori Ocean/Star Theme */
+        /* UPDATED: Naori Mode - Bioluminescent Beach */
         [data-theme="naori"] { 
-            --bg-primary: #0B1021; /* Deep ocean */
-            --bg-secondary: #151C33; /* Slightly lighter navy */
-            --bg-tertiary: #060913; /* Midnight */
-            --bg-input: #1E294A; /* Slate blue */
-            --text-normal: #E0F2FE; /* Cyan white */
-            --text-muted: #7DD3FC; /* Soft blue */
-            --text-header: #FFFFFF;
-            --accent: #2563EB; /* Royal Cerulean */
-            --accent-hover: #1D4ED8;
-            --divider: #312E81; /* Deep purple/blue */
+            --bg-primary: #0a1128; /* Midnight dark water */
+            --bg-secondary: #1c2541; /* Wet dark sand */
+            --bg-tertiary: #050a1f; /* Deepest ocean */
+            --bg-input: #2a3b5c; 
+            --text-normal: #80ffdb; /* Bioluminescent pale green/cyan */
+            --text-muted: #5390d9; /* Dimmer blue */
+            --text-header: #ffffff;
+            --accent: #00f5d4; /* Bright bioluminescent glow */
+            --accent-hover: #00b4d8;
+            --divider: #1a659e;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -77,8 +77,21 @@
         .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s; position: relative; }
         .user-item:hover { background: var(--bg-input); color: var(--text-normal); }
         
-        /* Unread Dot */
-        .unread-dot { width: 10px; height: 10px; background-color: #f26d21; border-radius: 50%; position: absolute; right: 15px; display: none; }
+        /* NEW: Pulsing Unread Dot */
+        .unread-dot { 
+            width: 12px; height: 12px; 
+            background-color: #ff3b30; 
+            border-radius: 50%; 
+            position: absolute; right: 15px; 
+            display: none; 
+            box-shadow: 0 0 8px #ff3b30;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
 
         #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
         .user-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
@@ -100,7 +113,6 @@
         .message { display: flex; padding: 8px 16px; margin-top: 8px; position: relative; }
         .message:hover { background: rgba(4, 4, 5, 0.07); }
         
-        /* Message Actions (Edit/Pin) */
         .msg-actions { position: absolute; right: 16px; top: -10px; background: var(--bg-secondary); border: 1px solid var(--divider); border-radius: 4px; display: none; padding: 2px; }
         .message:hover .msg-actions { display: flex; }
         .msg-action-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
@@ -113,18 +125,13 @@
         .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         .msg-text { color: var(--text-normal); font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
         
-        /* Chat Images */
         .msg-image { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 5px; object-fit: contain; background: var(--bg-tertiary); }
-        
-        /* Read Receipt */
         .read-receipt { text-align: right; font-size: 0.75rem; color: var(--accent); padding-right: 16px; margin-top: -5px; font-weight: bold; }
 
         #input-area { padding: 0 16px 24px 16px; }
         #message-form { display: flex; background: var(--bg-input); border-radius: 8px; padding: 10px 16px; align-items: center; gap: 10px; }
         #message-form input[type="text"] { flex: 1; background: transparent; border: none; padding: 0; color: var(--text-normal); font-size: 1rem; }
         #message-form button { display: none; }
-        
-        /* Image Upload Button */
         .upload-btn { background: transparent; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; border: none; padding: 0; }
         .upload-btn:hover { color: var(--text-normal); }
 
@@ -174,7 +181,7 @@
                     <button class="theme-btn" onclick="setTheme('light')">Light Mode</button>
                     <button class="theme-btn" onclick="setTheme('hacker')">Hacker</button>
                     <button class="theme-btn" onclick="setTheme('sunset')">Sunset</button>
-                    <button class="theme-btn" onclick="setTheme('naori')" style="grid-column: span 2; background: #2563EB; color: white;">🌊 Naori Mode 🌊</button>
+                    <button class="theme-btn" onclick="setTheme('naori')" style="grid-column: span 2; background: #00f5d4; color: #050a1f; font-weight: bold;">🌊 Naori Mode (Bioluminescent) 🌊</button>
                 </div>
             </div>
             <button id="btn-logout" class="btn-secondary" style="width: 100%;">Log Out</button>
@@ -230,7 +237,6 @@
                 <form id="message-form">
                     <label for="chat-image-upload" class="upload-btn">📷</label>
                     <input type="file" id="chat-image-upload" accept="image/*" class="hidden">
-                    
                     <input type="text" id="message-input" placeholder="Message..." autocomplete="off">
                     <button type="submit">Send</button>
                 </form>
@@ -266,24 +272,20 @@
         let currentChatId = null;
         let unsubscribeChat = null;
         let unsubscribeCallListener = null;
-        let unreadListeners = []; // Keep track to clean up
+        let unreadListeners = []; 
 
-        // --- WEBRTC Variables ---
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
 
-        // Theme
         window.setTheme = function(themeName) {
             document.body.setAttribute('data-theme', themeName);
             localStorage.setItem('chat_theme', themeName);
         }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
-        // Modals
         document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('hidden'));
         document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
 
-        // Profile Pic Upload
         document.getElementById('avatar-upload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -307,12 +309,17 @@
             }
         });
 
-        // Auth
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
+                
+                // NEW: Request Browser Notification Permissions
+                if ("Notification" in window && Notification.permission !== "granted") {
+                    Notification.requestPermission();
+                }
+
                 loadUsers();
                 listenForIncomingCalls();
             } else {
@@ -346,12 +353,11 @@
         function getAvatarHTML(userData) { return userData?.avatar ? `<img src="${userData.avatar}">` : (userData?.username?.charAt(0).toUpperCase() || '?'); }
         function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
 
-        // --- LOAD USERS & UNREAD DOTS ---
+        // --- LOAD USERS & SYSTEM NOTIFICATIONS ---
         function loadUsers() {
             onSnapshot(collection(db, 'users'), (snapshot) => {
                 const userList = document.getElementById('user-list');
                 userList.innerHTML = ''; 
-                // Clear old listeners
                 unreadListeners.forEach(unsub => unsub());
                 unreadListeners = [];
 
@@ -372,15 +378,26 @@
                         userDiv.addEventListener('click', () => openChat(userData));
                         userList.appendChild(userDiv);
 
-                        // Listen for unread messages specifically for this chat room
                         const chatId = generateChatId(currentUser.uid, userData.uid);
+                        let previousUnreadState = false; // Track to prevent spamming notifications
+
                         const unsub = onSnapshot(doc(db, 'chats_meta', chatId), (metaSnap) => {
                             const metaData = metaSnap.data();
                             const dot = document.getElementById(`dot-${userData.uid}`);
-                            if (dot) {
-                                // If I am the one who hasn't read it, show the dot!
-                                dot.style.display = (metaData && metaData.unreadBy === currentUser.uid) ? 'block' : 'none';
+                            const currentlyUnread = metaData && metaData.unreadBy === currentUser.uid;
+                            
+                            // Visual Dot
+                            if (dot) dot.style.display = currentlyUnread ? 'block' : 'none';
+                            
+                            // System Push Notification
+                            if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) {
+                                if ("Notification" in window && Notification.permission === "granted") {
+                                    new Notification("New Message", {
+                                        body: `You have a new message from ${userData.username}`
+                                    });
+                                }
                             }
+                            previousUnreadState = currentlyUnread;
                         });
                         unreadListeners.push(unsub);
 
@@ -394,7 +411,6 @@
 
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
-        // --- OPEN CHAT & CLEAR UNREAD ---
         function openChat(targetUser) {
             currentChatUser = targetUser;
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
@@ -409,7 +425,6 @@
             loadChatMessages();
         }
 
-        // Make edit/pin accessible globally for inline onclick
         window.editMessage = async function(msgId, oldText) {
             const newText = prompt("Edit your message:", oldText);
             if (newText !== null && newText.trim() !== "") {
@@ -427,7 +442,6 @@
             });
         };
 
-        // --- LOAD MESSAGES & READ RECEIPTS ---
         function loadChatMessages() {
             const container = document.getElementById('messages-container');
             const pinnedBar = document.getElementById('pinned-bar');
@@ -442,7 +456,6 @@
                 let hasPins = false;
                 let lastMessageData = null;
 
-                // Check room metadata to see if friend has read our messages
                 const metaSnap = await getDoc(doc(db, 'chats_meta', currentChatId));
                 const metaData = metaSnap.data();
                 const friendHasRead = metaData && metaData.unreadBy === null;
@@ -450,7 +463,7 @@
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const msgId = docSnap.id;
-                    lastMessageData = data; // Keep tracking the last one
+                    lastMessageData = data;
 
                     let decryptedText = "[Error]";
                     try { decryptedText = CryptoJS.AES.decrypt(data.ciphertext, GLOBAL_OBFUSCATION_KEY).toString(CryptoJS.enc.Utf8); } catch (e) {}
@@ -459,7 +472,6 @@
                     const senderProfile = allUsersMap[data.senderId];
                     const isMe = data.senderId === currentUser.uid;
 
-                    // Content block (Text vs Image)
                     let contentHTML = '';
                     if (data.type === 'image') {
                         contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image">`;
@@ -467,11 +479,9 @@
                         contentHTML = `<div class="msg-text">${decryptedText}</div>`;
                     }
 
-                    // Actions Menu (Only I can edit my text, but anyone can pin)
                     let actionsHTML = `<div class="msg-actions">
                         <button class="msg-action-btn" onclick="togglePin('${msgId}', ${data.isPinned || false})">${data.isPinned ? 'Unpin' : 'Pin'}</button>`;
                     if (isMe && data.type !== 'image') {
-                        // Pass the raw text safely by escaping quotes
                         const safeText = decryptedText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         actionsHTML += `<button class="msg-action-btn" onclick="editMessage('${msgId}', '${safeText}')">Edit</button>`;
                     }
@@ -490,13 +500,11 @@
                             ${contentHTML}
                         </div>`;
 
-                    // Add to main chat
                     const msgDiv = document.createElement('div');
                     msgDiv.classList.add('message');
                     msgDiv.innerHTML = msgHTML;
                     container.appendChild(msgDiv);
 
-                    // Add to Pinned Bar if pinned
                     if (data.isPinned) {
                         hasPins = true;
                         const pinDiv = document.createElement('div');
@@ -506,10 +514,8 @@
                     }
                 });
 
-                // Display pinned bar
                 pinnedBar.style.display = hasPins ? 'block' : 'none';
 
-                // Add Read Receipt to the bottom if the LAST message was sent by me, and the friend has read it
                 if (lastMessageData && lastMessageData.senderId === currentUser.uid && friendHasRead) {
                     const readDiv = document.createElement('div');
                     readDiv.classList.add('read-receipt');
@@ -521,7 +527,6 @@
             });
         }
 
-        // --- SEND TEXT MESSAGE ---
         document.getElementById('message-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const input = document.getElementById('message-input');
@@ -537,20 +542,15 @@
                         isEdited: false
                     });
                     
-                    // Mark as unread for the friend
                     await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
-                    
                     input.value = '';
                 } catch (error) { console.error("Error sending:", error); }
             }
         });
 
-        // --- SEND IMAGE MESSAGE ---
         document.getElementById('chat-image-upload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file || !currentChatId) return;
-            
-            // Clear input so you can send same image twice if wanted
             e.target.value = ''; 
 
             const reader = new FileReader();
@@ -561,13 +561,13 @@
                 img.onload = async () => {
                     const canvas = document.createElement('canvas');
                     let width = img.width, height = img.height;
-                    const MAX_SIZE = 800; // Larger max size for chat photos
+                    const MAX_SIZE = 800; 
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                     canvas.width = width; canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     
-                    const base64Img = canvas.toDataURL('image/jpeg', 0.6); // Compress quality
+                    const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
                     
                     try {
                         await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
@@ -578,16 +578,12 @@
                             isPinned: false
                         });
                         
-                        // Mark as unread
                         await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
                     } catch (error) { console.error("Error sending image:", error); }
                 }
             }
         });
 
-        // ==========================================
-        // WEBRTC VIDEO CALLING ENGINE (Unchanged)
-        // ==========================================
         async function setupWebcam() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             remoteStream = new MediaStream();
