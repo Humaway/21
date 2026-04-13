@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Naori Messenger</title>
+    <title>ANULChat</title>
     
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -202,7 +202,7 @@
 
     <div id="auth-screen" class="modal-overlay">
         <div class="modal">
-            <h2>Naori Messenger</h2>
+            <h2>ANULChat</h2>
             <form id="auth-form" class="form-col">
                 <input type="text" id="auth-username" placeholder="Username (for Sign Up)">
                 <input type="email" id="auth-email" placeholder="Email" required>
@@ -258,7 +258,7 @@
     <div id="app-container" class="hidden">
         <div id="sidebar">
             <div class="sidebar-header">
-                <span>Naori Server</span>
+                <span>ANUL Server</span>
             </div>
             
             <div class="sidebar-category">Channels</div>
@@ -338,6 +338,7 @@
         // 1. CONFIGURATIONS
         // ==========================================
         
+        // TODO: PASTE YOUR FIREBASE CONFIG HERE
         const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
@@ -351,7 +352,7 @@
         const GLOBAL_OBFUSCATION_KEY = "MySuperSecretAppPassword123!";
         const VAPID_PUBLIC_KEY = "BDqR8D_4VJvnToLK1hTUZy8cG_WNCDnPLkDeNE28IZsaBX4NjKOV2kxeLJSrRH02M0YYsOOrfpKamuG7h6KD5x4";
         const VERCEL_API_URL = "https://backend-gray-psi-14.vercel.app/api/notify";
-
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -520,7 +521,7 @@
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
                 
-                setUserStatus('online'); // Set online initially
+                setUserStatus('online'); 
                 
                 if ("Notification" in window && navigator.serviceWorker) {
                     navigator.serviceWorker.ready.then(async (registration) => {
@@ -624,7 +625,6 @@
                 });
             });
 
-            // Group Chat Global Listener for In-App Toasts
             if (unsubscribeGroupMeta) unsubscribeGroupMeta();
             unsubscribeGroupMeta = onSnapshot(doc(db, 'chats_meta', 'group_general'), (docSnap) => {
                 const data = docSnap.data();
@@ -661,7 +661,14 @@
             document.getElementById('app-container').classList.add('chat-active');
             
             cancelReply();
-            setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }, { merge: true });
+            
+            // FIX: Only clear the unread flag if WE are the ones who were supposed to read it
+            getDoc(doc(db, 'chats_meta', currentChatId)).then(snap => {
+                if (snap.exists() && snap.data().unreadBy === currentUser.uid) {
+                    updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null });
+                }
+            });
+
             loadChatMessages();
         }
 
@@ -671,7 +678,7 @@
             document.getElementById('chat-type-icon').textContent = '#';
             document.getElementById('chat-title').textContent = 'General Chat';
             document.getElementById('chat-title').style.color = 'var(--text-header)';
-            document.getElementById('btn-start-call').classList.add('hidden'); // Disable call in group
+            document.getElementById('btn-start-call').classList.add('hidden');
             document.getElementById('input-area').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
             
@@ -681,7 +688,6 @@
 
         document.getElementById('message-input').addEventListener('input', () => {
             if (!currentChatId) return;
-            // Only broadcast typing in DMs to save database writes
             if (!currentChatUser.isGroup) {
                 setDoc(doc(db, 'chats_meta', currentChatId), { typing: currentUser.uid }, { merge: true });
                 clearTimeout(typingTimeout);
@@ -689,7 +695,6 @@
             }
         });
 
-        // Mobile Long-Press Logic
         let pressTimer;
         window.handleTouchStart = function(e, msgId) {
             pressTimer = window.setTimeout(() => {
@@ -750,7 +755,6 @@
             let isFirstLoad = true;
 
             const updateReadReceiptUI = () => {
-                // Disable read receipts for groups to keep it simple
                 if (currentChatUser && currentChatUser.isGroup) return; 
 
                 let receiptEl = document.getElementById('dynamic-read-receipt');
@@ -768,12 +772,18 @@
                 }
             };
 
-            // Only listen to typing/read meta if it's a DM
             if (!currentChatUser.isGroup) {
                 unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                     const metaData = metaSnap.data();
+                    
+                    // FIX: Auto-clear unread status if we receive a message while already looking at the chat
+                    if (metaData && metaData.unreadBy === currentUser.uid) {
+                        updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null });
+                    }
+                    
                     hasFriendRead = metaData && metaData.unreadBy === null;
                     updateReadReceiptUI();
+                    
                     if (metaData && metaData.typing && metaData.typing !== currentUser.uid) {
                         typingInd.textContent = `${currentChatUser.username} is typing...`;
                         typingInd.classList.remove('hidden');
@@ -934,14 +944,11 @@
                             }).catch(e => {});
                         }
                     } else {
-                        // Group Chat Metadata Trigger
                         await setDoc(doc(db, 'chats_meta', 'group_general'), { 
                             lastSenderId: currentUser.uid, 
                             lastSenderName: document.getElementById('my-username').textContent,
                             timestamp: serverTimestamp() 
                         });
-                        
-                        // Fire push notifications to all users who have it enabled AND haven't muted the group
                         Object.values(allUsersMap).forEach(user => {
                             if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) {
                                 if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
@@ -994,12 +1001,18 @@
                             isPinned: false,
                             reactions: {}
                         };
-                        if (replyingToMsg) { payload.replyToId = replyingToMsg.id; payload.replyToText = replyingToMsg.text; cancelReply(); }
+                        
+                        if (replyingToMsg) {
+                            payload.replyToId = replyingToMsg.id;
+                            payload.replyToText = replyingToMsg.text;
+                            cancelReply(); 
+                        }
 
                         await addDoc(collection(db, 'chats', currentChatId, 'messages'), payload);
                         
                         if (!currentChatUser.isGroup) {
                             await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
+
                             if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                                 fetch(VERCEL_API_URL, {
                                     method: 'POST',
@@ -1010,7 +1023,7 @@
                                         body: `From ${document.getElementById('my-username').textContent}`,
                                         icon: document.getElementById('my-avatar').querySelector('img')?.src || null
                                     })
-                                }).catch(e=>{});
+                                }).catch(err => console.error("Vercel Push Failed:", err));
                             }
                         } else {
                             await setDoc(doc(db, 'chats_meta', 'group_general'), { 
