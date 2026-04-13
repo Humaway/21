@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ANULChat</title>
+    <title>Naori Messenger</title>
     
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -63,21 +63,29 @@
         .error { color: #ed4245; font-size: 0.85rem; text-align: center; }
 
         /* Settings Panel */
-        .theme-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .theme-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .theme-btn { padding: 8px; font-size: 0.9rem; background: var(--bg-input); }
-        .setting-group { margin-bottom: 20px; border-bottom: 1px solid var(--divider); padding-bottom: 15px; }
+        .setting-group { margin-bottom: 15px; border-bottom: 1px solid var(--divider); padding-bottom: 15px; }
         .setting-group label { display: block; color: var(--text-header); font-weight: bold; margin-bottom: 10px; }
         .close-btn { position: absolute; top: 15px; right: 15px; background: transparent; color: var(--text-muted); font-size: 1.2rem; padding: 0; width: auto; }
-        .avatar-frame { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 12px; background: var(--accent); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; overflow: hidden; flex-shrink: 0; }
-        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
         .save-settings-btn { background: #3ba55c; width: 100%; margin-top: 10px; }
+
+        /* Avatar & Presence Status */
+        .avatar-wrapper { position: relative; display: inline-block; flex-shrink: 0; margin-right: 12px; }
+        .avatar-frame { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--accent); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; overflow: hidden; }
+        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+        .status-dot { position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg-secondary); background: #747f8d; z-index: 2; transition: background 0.3s; }
+        .status-dot.online { background: #3ba55c; }
+        .status-dot.away { background: #faa61a; }
+        .status-dot.offline { background: #747f8d; }
 
         /* Sidebar */
         #sidebar { width: 280px; background: var(--bg-secondary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--divider); }
         .sidebar-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bg-tertiary); font-weight: 600; color: var(--text-header); }
         .icon-btn { background: transparent; color: var(--text-muted); padding: 4px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; }
-        #user-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .sidebar-category { padding: 10px 16px 5px 16px; font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         
+        #user-list { flex: 1; overflow-y: auto; padding: 0 8px 8px 8px; }
         .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s; position: relative; }
         .user-item:hover { background: var(--bg-input); color: var(--text-normal); }
         
@@ -194,7 +202,7 @@
 
     <div id="auth-screen" class="modal-overlay">
         <div class="modal">
-            <h2>ANULChat</h2>
+            <h2>Naori Messenger</h2>
             <form id="auth-form" class="form-col">
                 <input type="text" id="auth-username" placeholder="Username (for Sign Up)">
                 <input type="email" id="auth-email" placeholder="Email" required>
@@ -210,6 +218,7 @@
         <div class="modal">
             <button id="close-settings" class="close-btn">✖</button>
             <h2>User Settings</h2>
+            
             <div class="setting-group">
                 <label>Profile Picture</label>
                 <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
@@ -222,6 +231,15 @@
                 <label>Name Color</label>
                 <input type="color" id="settings-color-input" value="#ffffff">
             </div>
+            
+            <div class="setting-group">
+                <label>Notifications</label>
+                <label style="font-weight: normal; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="settings-mute-group" style="width: auto; transform: scale(1.2);">
+                    Mute General Chat Notifications
+                </label>
+            </div>
+
             <div class="setting-group">
                 <label>App Theme</label>
                 <div class="theme-buttons">
@@ -240,11 +258,25 @@
     <div id="app-container" class="hidden">
         <div id="sidebar">
             <div class="sidebar-header">
-                <span>Direct Messages</span>
+                <span>Naori Server</span>
             </div>
+            
+            <div class="sidebar-category">Channels</div>
+            <div id="channel-list" style="padding: 0 8px;">
+                <div class="user-item" onclick="openGroupChat()">
+                    <div class="avatar-wrapper"><div class="avatar-frame">#</div></div>
+                    <span style="font-weight: 500; color: var(--text-normal);">General Chat</span>
+                </div>
+            </div>
+
+            <div class="sidebar-category" style="margin-top: 10px;">Direct Messages</div>
             <div id="user-list"></div>
+            
             <div id="current-user-bar">
-                <div id="my-avatar" class="avatar-frame">?</div>
+                <div class="avatar-wrapper" style="margin-right: 10px;">
+                    <div id="my-avatar" class="avatar-frame">?</div>
+                    <div id="my-status-dot" class="status-dot online"></div>
+                </div>
                 <div class="user-details"><strong id="my-username" style="color: white;">Loading...</strong></div>
                 <button id="btn-settings" class="icon-btn">⚙️</button>
             </div>
@@ -253,7 +285,7 @@
         <div id="chat-area">
             <div class="chat-header">
                 <button id="mobile-back-btn">←</button>
-                <span style="color: var(--text-muted);">@</span>
+                <span id="chat-type-icon" style="color: var(--text-muted);">@</span>
                 <span id="chat-title">Select a user</span>
                 <div class="header-actions">
                     <button id="btn-start-call" class="hidden">📞 Call</button>
@@ -332,7 +364,9 @@
         let unsubscribeChat = null;
         let unsubscribeMetaRealtime = null; 
         let unsubscribeCallListener = null;
+        let unsubscribeGroupMeta = null;
         let unreadListeners = []; 
+        let initialGroupLoad = true;
 
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
@@ -342,7 +376,7 @@
         }
 
         // ==========================================
-        // NEW: AUDIO SYNTHESIZER
+        // AUDIO & UI HELPERS
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -355,8 +389,7 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
@@ -368,23 +401,15 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
             gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
             osc.start(); osc.stop(audioCtx.currentTime + 0.5);
         }
 
-        // --- UI HELPERS ---
-        window.openLightbox = function(src) {
-            document.getElementById('lightbox-img').src = src;
-            document.getElementById('lightbox').classList.add('active');
-        };
-        window.closeLightbox = function() {
-            document.getElementById('lightbox').classList.remove('active');
-            setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200);
-        };
-
+        window.openLightbox = function(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('active'); };
+        window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('active'); setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200); };
+        
         window.scrollToMsg = function(msgId) {
             const el = document.getElementById(`msg-${msgId}`);
             if (el) {
@@ -413,17 +438,35 @@
             setTimeout(() => { if (toast.parentNode) { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); } }, 4000);
         }
 
-        window.setTheme = function(themeName) {
-            document.body.setAttribute('data-theme', themeName);
-            localStorage.setItem('chat_theme', themeName);
-        }
+        window.setTheme = function(themeName) { document.body.setAttribute('data-theme', themeName); localStorage.setItem('chat_theme', themeName); }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
+        // ==========================================
+        // ONLINE / OFFLINE PRESENCE SYSTEM
+        // ==========================================
+        function setUserStatus(status) {
+            if (currentUser) {
+                updateDoc(doc(db, "users", currentUser.uid), { status: status }).catch(()=>{});
+                document.getElementById('my-status-dot').className = `status-dot ${status}`;
+            }
+        }
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') setUserStatus('online');
+            else setUserStatus('away');
+        });
+        
+        window.addEventListener('beforeunload', () => { setUserStatus('offline'); });
+
+        // ==========================================
+        // SETTINGS & PROFILE UPDATES
+        // ==========================================
         document.getElementById('btn-settings').addEventListener('click', () => {
             const myProfile = allUsersMap[currentUser.uid];
             if (myProfile) {
                 document.getElementById('settings-username-input').value = myProfile.username || '';
                 document.getElementById('settings-color-input').value = myProfile.nameColor || '#ffffff';
+                document.getElementById('settings-mute-group').checked = myProfile.muteGroupNotifications || false;
             }
             document.getElementById('settings-modal').classList.remove('hidden');
         });
@@ -432,13 +475,21 @@
         document.getElementById('btn-save-profile').addEventListener('click', async () => {
             const newName = document.getElementById('settings-username-input').value.trim();
             const newColor = document.getElementById('settings-color-input').value;
+            const muteGroup = document.getElementById('settings-mute-group').checked;
             if (newName && currentUser) {
-                await setDoc(doc(db, "users", currentUser.uid), { username: newName, nameColor: newColor }, { merge: true });
+                await setDoc(doc(db, "users", currentUser.uid), { 
+                    username: newName, 
+                    nameColor: newColor,
+                    muteGroupNotifications: muteGroup
+                }, { merge: true });
                 document.getElementById('settings-modal').classList.add('hidden');
                 showToast("Success", "Profile updated successfully!");
             }
         });
 
+        // ==========================================
+        // AUTHENTICATION
+        // ==========================================
         function requestNotificationPermission() {
             if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
                 Notification.requestPermission();
@@ -446,22 +497,19 @@
         }
 
         document.getElementById('btn-signup').addEventListener('click', async () => {
-            initAudio(); 
-            requestNotificationPermission(); 
+            initAudio(); requestNotificationPermission(); 
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const username = document.getElementById('auth-username').value;
             if (!username) return document.getElementById('auth-error').textContent = "Username required";
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username, nameColor: '#ffffff' });
+                await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username, nameColor: '#ffffff', status: 'online' });
             } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            initAudio(); 
-            requestNotificationPermission(); 
+            e.preventDefault(); initAudio(); requestNotificationPermission(); 
             try { await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value); } 
             catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
@@ -471,6 +519,8 @@
                 currentUser = user;
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
+                
+                setUserStatus('online'); // Set online initially
                 
                 if ("Notification" in window && navigator.serviceWorker) {
                     navigator.serviceWorker.ready.then(async (registration) => {
@@ -486,12 +536,14 @@
                 loadUsers();
                 listenForIncomingCalls();
             } else {
+                setUserStatus('offline');
                 currentUser = null;
                 document.getElementById('app-container').classList.add('hidden');
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('settings-modal').classList.add('hidden');
                 if (unsubscribeCallListener) unsubscribeCallListener();
                 if (unsubscribeMetaRealtime) unsubscribeMetaRealtime();
+                if (unsubscribeGroupMeta) unsubscribeGroupMeta();
                 unreadListeners.forEach(unsub => unsub());
             }
         });
@@ -537,7 +589,10 @@
                         userDiv.classList.add('user-item');
                         
                         userDiv.innerHTML = `
-                            <div class="avatar-frame">${getAvatarHTML(userData)}</div> 
+                            <div class="avatar-wrapper">
+                                <div class="avatar-frame">${getAvatarHTML(userData)}</div> 
+                                <div class="status-dot ${userData.status || 'offline'}"></div>
+                            </div>
                             <span style="color: ${userData.nameColor || 'var(--text-normal)'}; font-weight: 500;">${userData.username}</span>
                             <div class="unread-dot" id="dot-${userData.uid}"></div>
                         `;
@@ -568,12 +623,27 @@
                     }
                 });
             });
+
+            // Group Chat Global Listener for In-App Toasts
+            if (unsubscribeGroupMeta) unsubscribeGroupMeta();
+            unsubscribeGroupMeta = onSnapshot(doc(db, 'chats_meta', 'group_general'), (docSnap) => {
+                const data = docSnap.data();
+                if (data && data.lastSenderId !== currentUser.uid) {
+                    const myProfile = allUsersMap[currentUser.uid];
+                    if (currentChatId !== 'group_general' && (!myProfile || !myProfile.muteGroupNotifications)) {
+                        if (!initialGroupLoad) {
+                            showToast("General Chat", `New message from ${data.lastSenderName}`, openGroupChat);
+                        }
+                    }
+                }
+                initialGroupLoad = false;
+            });
         }
 
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
         // ==========================================
-        // 5. CHAT, TYPING, QUOTES, LONG-PRESS
+        // 5. CHAT, TYPING, QUOTES, GROUPS
         // ==========================================
         
         let replyingToMsg = null;
@@ -581,7 +651,9 @@
 
         function openChat(targetUser) {
             currentChatUser = targetUser;
+            currentChatUser.isGroup = false;
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
+            document.getElementById('chat-type-icon').textContent = '@';
             document.getElementById('chat-title').textContent = targetUser.username;
             document.getElementById('chat-title').style.color = targetUser.nameColor || 'var(--text-header)';
             document.getElementById('input-area').classList.remove('hidden');
@@ -593,14 +665,28 @@
             loadChatMessages();
         }
 
-        // Typing Indicator Trigger
+        window.openGroupChat = function() {
+            currentChatUser = { uid: 'general', username: 'General Chat', isGroup: true };
+            currentChatId = 'group_general';
+            document.getElementById('chat-type-icon').textContent = '#';
+            document.getElementById('chat-title').textContent = 'General Chat';
+            document.getElementById('chat-title').style.color = 'var(--text-header)';
+            document.getElementById('btn-start-call').classList.add('hidden'); // Disable call in group
+            document.getElementById('input-area').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('chat-active');
+            
+            cancelReply();
+            loadChatMessages(); 
+        }
+
         document.getElementById('message-input').addEventListener('input', () => {
             if (!currentChatId) return;
-            setDoc(doc(db, 'chats_meta', currentChatId), { typing: currentUser.uid }, { merge: true });
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                setDoc(doc(db, 'chats_meta', currentChatId), { typing: null }, { merge: true });
-            }, 2000);
+            // Only broadcast typing in DMs to save database writes
+            if (!currentChatUser.isGroup) {
+                setDoc(doc(db, 'chats_meta', currentChatId), { typing: currentUser.uid }, { merge: true });
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => { setDoc(doc(db, 'chats_meta', currentChatId), { typing: null }, { merge: true }); }, 2000);
+            }
         });
 
         // Mobile Long-Press Logic
@@ -608,15 +694,11 @@
         window.handleTouchStart = function(e, msgId) {
             pressTimer = window.setTimeout(() => {
                 const el = document.getElementById(`msg-${msgId}`);
-                if(el) {
-                    // Toggle actions visibility and vibrate
-                    el.classList.toggle('show-actions');
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }
+                if(el) { el.classList.toggle('show-actions'); if (navigator.vibrate) navigator.vibrate(50); }
             }, 500);
         };
         window.handleTouchEnd = function() { clearTimeout(pressTimer); };
-        window.handleTouchMove = function() { clearTimeout(pressTimer); }; // Cancel on swipe
+        window.handleTouchMove = function() { clearTimeout(pressTimer); }; 
 
         window.startReply = function(msgId, text) {
             replyingToMsg = { id: msgId, text: text };
@@ -625,7 +707,6 @@
             document.getElementById('input-area').classList.add('is-replying');
             document.getElementById('message-input').focus();
         };
-
         window.cancelReply = function() {
             replyingToMsg = null;
             document.getElementById('reply-banner').classList.add('hidden');
@@ -639,11 +720,8 @@
                 await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { ciphertext: newCipher, isEdited: true });
             }
         };
-
-        window.togglePin = async function(msgId, currentState) {
-            await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { isPinned: !currentState });
-        };
-
+        window.togglePin = async function(msgId, currentState) { await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { isPinned: !currentState }); };
+        
         window.toggleReaction = async function(msgId, emoji) {
             const msgRef = doc(db, 'chats', currentChatId, 'messages', msgId);
             const msgSnap = await getDoc(msgRef);
@@ -672,6 +750,9 @@
             let isFirstLoad = true;
 
             const updateReadReceiptUI = () => {
+                // Disable read receipts for groups to keep it simple
+                if (currentChatUser && currentChatUser.isGroup) return; 
+
                 let receiptEl = document.getElementById('dynamic-read-receipt');
                 if (!receiptEl) {
                     receiptEl = document.createElement('div');
@@ -687,19 +768,22 @@
                 }
             };
 
-            unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
-                const metaData = metaSnap.data();
-                hasFriendRead = metaData && metaData.unreadBy === null;
-                updateReadReceiptUI();
-                
-                // Show Typing Indicator if friend is typing
-                if (metaData && metaData.typing && metaData.typing !== currentUser.uid) {
-                    typingInd.textContent = `${currentChatUser.username} is typing...`;
-                    typingInd.classList.remove('hidden');
-                } else {
-                    typingInd.classList.add('hidden');
-                }
-            });
+            // Only listen to typing/read meta if it's a DM
+            if (!currentChatUser.isGroup) {
+                unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
+                    const metaData = metaSnap.data();
+                    hasFriendRead = metaData && metaData.unreadBy === null;
+                    updateReadReceiptUI();
+                    if (metaData && metaData.typing && metaData.typing !== currentUser.uid) {
+                        typingInd.textContent = `${currentChatUser.username} is typing...`;
+                        typingInd.classList.remove('hidden');
+                    } else { typingInd.classList.add('hidden'); }
+                });
+            } else {
+                typingInd.classList.add('hidden');
+                let receiptEl = document.getElementById('dynamic-read-receipt');
+                if (receiptEl) receiptEl.style.display = 'none';
+            }
 
             const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
             unsubscribeChat = onSnapshot(q, (snapshot) => {
@@ -733,7 +817,6 @@
                         contentHTML = `<div class="msg-text">${decryptedText}</div>`;
                     }
 
-                    // Render Quoted Reply
                     let quotedHTML = '';
                     if (data.replyToId && data.replyToText) {
                         const safeReplyText = data.replyToText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -751,7 +834,6 @@
                     }
                     reactionsHTML += '</div>';
 
-                    // Actions Builder
                     const safeTextForReply = data.type === 'image' ? '[Image]' : decryptedText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     let actionsHTML = `<div class="msg-actions">
                         <span class="quick-reacts">
@@ -785,10 +867,9 @@
 
                     const msgDiv = document.createElement('div');
                     msgDiv.classList.add('message');
-                    msgDiv.id = `msg-${msgId}`; // Set ID for scrolling
+                    msgDiv.id = `msg-${msgId}`; 
                     msgDiv.innerHTML = msgHTML;
                     
-                    // Attach Touch Listeners for Mobile Long-Press
                     msgDiv.addEventListener('touchstart', (e) => handleTouchStart(e, msgId), {passive: true});
                     msgDiv.addEventListener('touchend', handleTouchEnd);
                     msgDiv.addEventListener('touchmove', handleTouchMove, {passive: true});
@@ -810,7 +891,6 @@
                 isMyLastMessage = lastMessageData && lastMessageData.senderId === currentUser.uid;
                 updateReadReceiptUI();
                 container.scrollTop = container.scrollHeight;
-                
                 isFirstLoad = false;
             });
         }
@@ -826,8 +906,6 @@
             if (text && currentChatId) {
                 try {
                     playPopSound();
-
-                    // Prepare payload
                     const payload = {
                         type: 'text',
                         ciphertext: CryptoJS.AES.encrypt(text, GLOBAL_OBFUSCATION_KEY).toString(),
@@ -837,28 +915,49 @@
                         isEdited: false,
                         reactions: {}
                     };
-
-                    // Append reply data if active
-                    if (replyingToMsg) {
-                        payload.replyToId = replyingToMsg.id;
-                        payload.replyToText = replyingToMsg.text;
-                        cancelReply(); 
-                    }
+                    if (replyingToMsg) { payload.replyToId = replyingToMsg.id; payload.replyToText = replyingToMsg.text; cancelReply(); }
 
                     await addDoc(collection(db, 'chats', currentChatId, 'messages'), payload);
-                    await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
                     
-                    if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
-                        fetch(VERCEL_API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                subscription: currentChatUser.pushSubscription,
-                                title: "New Message",
-                                body: `From ${document.getElementById('my-username').textContent}`,
-                                icon: document.getElementById('my-avatar').querySelector('img')?.src || null
-                            })
-                        }).catch(err => console.error("Vercel Push Failed:", err));
+                    if (!currentChatUser.isGroup) {
+                        await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
+                        if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
+                            fetch(VERCEL_API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    subscription: currentChatUser.pushSubscription,
+                                    title: "New Message",
+                                    body: `From ${document.getElementById('my-username').textContent}`,
+                                    icon: document.getElementById('my-avatar').querySelector('img')?.src || null
+                                })
+                            }).catch(e => {});
+                        }
+                    } else {
+                        // Group Chat Metadata Trigger
+                        await setDoc(doc(db, 'chats_meta', 'group_general'), { 
+                            lastSenderId: currentUser.uid, 
+                            lastSenderName: document.getElementById('my-username').textContent,
+                            timestamp: serverTimestamp() 
+                        });
+                        
+                        // Fire push notifications to all users who have it enabled AND haven't muted the group
+                        Object.values(allUsersMap).forEach(user => {
+                            if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) {
+                                if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
+                                    fetch(VERCEL_API_URL, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            subscription: user.pushSubscription,
+                                            title: "General Chat",
+                                            body: `New message from ${document.getElementById('my-username').textContent}`,
+                                            icon: document.getElementById('my-avatar').querySelector('img')?.src || null
+                                        })
+                                    }).catch(e => {});
+                                }
+                            }
+                        });
                     }
                     input.value = '';
                 } catch (error) { console.error("Error sending:", error); }
@@ -895,27 +994,46 @@
                             isPinned: false,
                             reactions: {}
                         };
-                        
-                        if (replyingToMsg) {
-                            payload.replyToId = replyingToMsg.id;
-                            payload.replyToText = replyingToMsg.text;
-                            cancelReply(); 
-                        }
+                        if (replyingToMsg) { payload.replyToId = replyingToMsg.id; payload.replyToText = replyingToMsg.text; cancelReply(); }
 
                         await addDoc(collection(db, 'chats', currentChatId, 'messages'), payload);
-                        await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
-
-                        if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
-                            fetch(VERCEL_API_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    subscription: currentChatUser.pushSubscription,
-                                    title: "New Photo",
-                                    body: `From ${document.getElementById('my-username').textContent}`,
-                                    icon: document.getElementById('my-avatar').querySelector('img')?.src || null
-                                })
-                            }).catch(err => console.error("Vercel Push Failed:", err));
+                        
+                        if (!currentChatUser.isGroup) {
+                            await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
+                            if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
+                                fetch(VERCEL_API_URL, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        subscription: currentChatUser.pushSubscription,
+                                        title: "New Photo",
+                                        body: `From ${document.getElementById('my-username').textContent}`,
+                                        icon: document.getElementById('my-avatar').querySelector('img')?.src || null
+                                    })
+                                }).catch(e=>{});
+                            }
+                        } else {
+                            await setDoc(doc(db, 'chats_meta', 'group_general'), { 
+                                lastSenderId: currentUser.uid, 
+                                lastSenderName: document.getElementById('my-username').textContent,
+                                timestamp: serverTimestamp() 
+                            });
+                            Object.values(allUsersMap).forEach(user => {
+                                if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) {
+                                    if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
+                                        fetch(VERCEL_API_URL, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                subscription: user.pushSubscription,
+                                                title: "General Chat",
+                                                body: `New Photo from ${document.getElementById('my-username').textContent}`,
+                                                icon: document.getElementById('my-avatar').querySelector('img')?.src || null
+                                            })
+                                        }).catch(e=>{});
+                                    }
+                                }
+                            });
                         }
                     } catch (error) { console.error("Error sending image:", error); }
                 }
@@ -940,21 +1058,15 @@
             document.getElementById('call-panel').classList.remove('hidden');
             document.getElementById('call-status').textContent = "Calling " + currentChatUser.username + "...";
             document.getElementById('btn-answer-call').classList.add('hidden');
-            
             await setupWebcam();
-            
             const callDoc = doc(collection(db, 'calls'));
             activeCallDocId = callDoc.id;
             const offerCandidates = collection(callDoc, 'offerCandidates');
             const answerCandidates = collection(callDoc, 'answerCandidates');
-            
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
-            
             const offerDescription = await pc.createOffer();
             await pc.setLocalDescription(offerDescription);
-            
             await setDoc(callDoc, { offer: { sdp: offerDescription.sdp, type: offerDescription.type }, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
-            
             activeCallUnsubscribe = onSnapshot(callDoc, (snapshot) => {
                 const data = snapshot.data();
                 if (!pc.currentRemoteDescription && data?.answer) { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('call-status').textContent = "In Call"; }
@@ -969,7 +1081,6 @@
                     const data = change.doc.data();
                     if (change.type === 'added' && data.receiverId === currentUser.uid && data.status === 'ringing') {
                         activeCallDocId = change.doc.id;
-                        
                         showToast("Incoming Video Call", "Tap to answer", () => {
                             openChat(allUsersMap[data.callerId]);
                             document.getElementById('call-panel').classList.remove('hidden');
@@ -987,7 +1098,7 @@
                                     body: "Tap to answer",
                                     icon: null
                                 })
-                            }).catch(err => console.error("Vercel Push Failed:", err));
+                            }).catch(e=>{});
                         }
                     }
                     if (change.type === 'modified' && data.status === 'ended') endCall();
@@ -998,9 +1109,7 @@
         document.getElementById('btn-answer-call').addEventListener('click', async () => {
             document.getElementById('btn-answer-call').classList.add('hidden');
             document.getElementById('call-status').textContent = "Connecting...";
-            
             await setupWebcam();
-            
             const callDoc = doc(db, 'calls', activeCallDocId);
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
             const callData = (await getDoc(callDoc)).data();
@@ -1018,7 +1127,6 @@
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
             if (activeCallUnsubscribe) activeCallUnsubscribe();
-            
             document.getElementById('call-panel').classList.add('hidden');
             document.getElementById('local-video').srcObject = null;
             document.getElementById('remote-video').srcObject = null;
