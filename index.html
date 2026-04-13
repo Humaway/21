@@ -8,36 +8,46 @@
 
     <style>
         :root {
-            var(--bg-primary): #36393f;
-            var(--bg-secondary): #2f3136;
-            var(--bg-tertiary): #202225;
-            var(--bg-input): #40444b;
-            var(--text-normal): #dcddde;
-            var(--text-muted): #72767d;
-            var(--text-header): #ffffff;
-            var(--accent): #5865F2;
-            var(--accent-hover): #4752C4;
-            var(--divider): #42464D;
+            --bg-primary: #36393f;
+            --bg-secondary: #2f3136;
+            --bg-tertiary: #202225;
+            --bg-input: #40444b;
+            --text-normal: #dcddde;
+            --text-muted: #72767d;
+            --text-header: #ffffff;
+            --accent: #5865F2;
+            --accent-hover: #4752C4;
+            --divider: #42464D;
         }
 
         /* --- Custom Themes --- */
         [data-theme="light"] { --bg-primary: #ffffff; --bg-secondary: #f2f3f5; --bg-tertiary: #e3e5e8; --bg-input: #ebedef; --text-normal: #2e3338; --text-muted: #747f8d; --text-header: #060607; --accent: #5865F2; --divider: #e3e5e8; }
         [data-theme="hacker"] { --bg-primary: #0a0a0a; --bg-secondary: #000000; --bg-tertiary: #111111; --bg-input: #1a1a1a; --text-normal: #00ff00; --text-muted: #008800; --text-header: #00ff00; --accent: #00cc00; --divider: #222222; }
         [data-theme="sunset"] { --bg-primary: #2d1b2e; --bg-secondary: #1f1320; --bg-tertiary: #3a233b; --bg-input: #4a2d4b; --text-normal: #fcd5ce; --text-muted: #d8b4e2; --text-header: #ffb5a7; --accent: #ff9f1c; --divider: #5a375c; }
+        
+        /* NEW: Naori Ocean/Star Theme */
+        [data-theme="naori"] { 
+            --bg-primary: #0B1021; /* Deep ocean */
+            --bg-secondary: #151C33; /* Slightly lighter navy */
+            --bg-tertiary: #060913; /* Midnight */
+            --bg-input: #1E294A; /* Slate blue */
+            --text-normal: #E0F2FE; /* Cyan white */
+            --text-muted: #7DD3FC; /* Soft blue */
+            --text-header: #FFFFFF;
+            --accent: #2563EB; /* Royal Cerulean */
+            --accent-hover: #1D4ED8;
+            --divider: #312E81; /* Deep purple/blue */
+        }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        /* THE MOBILE FIX: Using 100dvh (Dynamic Viewport Height) fixes the address bar issue */
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-primary); color: var(--text-normal); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
         #app-container { display: flex; width: 100vw; height: 100dvh; position: relative; }
-        
         .hidden { display: none !important; }
 
         /* --- Modals & Auth --- */
         .modal { background: var(--bg-secondary); padding: 40px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; position: absolute; max-height: 90dvh; overflow-y: auto; }
         .modal h2 { color: var(--text-header); text-align: center; margin-bottom: 20px; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        
         .form-col { display: flex; flex-direction: column; gap: 15px; }
         input { background: var(--bg-tertiary); border: 1px solid var(--bg-tertiary); color: var(--text-normal); padding: 12px; border-radius: 4px; outline: none; font-size: 1rem; }
         input:focus { border-color: var(--accent); }
@@ -46,9 +56,7 @@
         .btn-secondary { background: var(--bg-input); }
         .btn-secondary:hover { background: #4f545c; }
         .btn-danger { background: #ed4245; }
-        .btn-danger:hover { background: #c9383a; }
         .btn-success { background: #3ba55c; }
-        .btn-success:hover { background: #2d7d46; }
         .error { color: #ed4245; font-size: 0.85rem; text-align: center; }
 
         /* --- Settings Panel --- */
@@ -57,20 +65,20 @@
         .setting-group { margin-bottom: 20px; border-bottom: 1px solid var(--divider); padding-bottom: 15px; }
         .setting-group label { display: block; color: var(--text-header); font-weight: bold; margin-bottom: 10px; }
         .close-btn { position: absolute; top: 15px; right: 15px; background: transparent; color: var(--text-muted); font-size: 1.2rem; padding: 0; width: auto; }
-        
-        /* Avatars */
         .avatar-frame { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 12px; background: var(--accent); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; overflow: hidden; flex-shrink: 0; }
         .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
 
         /* --- Sidebar --- */
         #sidebar { width: 280px; background: var(--bg-secondary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--divider); }
-        .sidebar-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bg-tertiary); box-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 600; color: var(--text-header); }
+        .sidebar-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bg-tertiary); font-weight: 600; color: var(--text-header); }
         .icon-btn { background: transparent; color: var(--text-muted); padding: 4px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; }
-        .icon-btn:hover { color: var(--text-normal); }
-        
         #user-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s, color 0.1s; }
+        
+        .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s; position: relative; }
         .user-item:hover { background: var(--bg-input); color: var(--text-normal); }
+        
+        /* Unread Dot */
+        .unread-dot { width: 10px; height: 10px; background-color: #f26d21; border-radius: 50%; position: absolute; right: 15px; display: none; }
 
         #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
         .user-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
@@ -78,26 +86,47 @@
 
         /* --- Chat Area --- */
         #chat-area { flex: 1; background: var(--bg-primary); display: flex; flex-direction: column; min-width: 0; }
-        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid var(--divider); box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-weight: 600; color: var(--text-header); gap: 10px; }
+        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid var(--divider); font-weight: 600; color: var(--text-header); gap: 10px; flex-shrink: 0; }
         #mobile-back-btn { display: none; background: transparent; padding: 5px; color: var(--text-muted); }
-        
         .header-actions { margin-left: auto; display: flex; gap: 10px; }
         #btn-start-call { background: var(--bg-tertiary); color: var(--text-normal); padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
-        #btn-start-call:hover { background: var(--bg-input); }
+
+        /* Pinned Messages Bar */
+        #pinned-bar { background: var(--bg-secondary); border-bottom: 1px solid var(--divider); padding: 10px 16px; max-height: 100px; overflow-y: auto; font-size: 0.85rem; color: var(--text-muted); display: none; flex-shrink: 0; }
+        .pinned-msg { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 5px; background: var(--bg-tertiary); padding: 5px 10px; border-radius: 4px; }
+        .pinned-header { font-weight: bold; color: var(--text-header); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
 
         #messages-container { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; }
-        .message { display: flex; padding: 8px 16px; margin-top: 8px; }
+        .message { display: flex; padding: 8px 16px; margin-top: 8px; position: relative; }
         .message:hover { background: rgba(4, 4, 5, 0.07); }
-        .msg-content { display: flex; flex-direction: column; }
+        
+        /* Message Actions (Edit/Pin) */
+        .msg-actions { position: absolute; right: 16px; top: -10px; background: var(--bg-secondary); border: 1px solid var(--divider); border-radius: 4px; display: none; padding: 2px; }
+        .message:hover .msg-actions { display: flex; }
+        .msg-action-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
+        .msg-action-btn:hover { background: var(--bg-input); color: var(--text-normal); }
+
+        .msg-content { display: flex; flex-direction: column; width: 100%; }
         .msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
         .msg-username { color: var(--text-header); font-weight: 500; font-size: 1rem; }
         .msg-time { color: var(--text-muted); font-size: 0.75rem; }
+        .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         .msg-text { color: var(--text-normal); font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
+        
+        /* Chat Images */
+        .msg-image { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 5px; object-fit: contain; background: var(--bg-tertiary); }
+        
+        /* Read Receipt */
+        .read-receipt { text-align: right; font-size: 0.75rem; color: var(--accent); padding-right: 16px; margin-top: -5px; font-weight: bold; }
 
         #input-area { padding: 0 16px 24px 16px; }
-        #message-form { display: flex; background: var(--bg-input); border-radius: 8px; padding: 10px 16px; align-items: center; }
-        #message-form input { flex: 1; background: transparent; border: none; padding: 0; margin-right: 10px; color: var(--text-normal); font-size: 1rem; }
+        #message-form { display: flex; background: var(--bg-input); border-radius: 8px; padding: 10px 16px; align-items: center; gap: 10px; }
+        #message-form input[type="text"] { flex: 1; background: transparent; border: none; padding: 0; color: var(--text-normal); font-size: 1rem; }
         #message-form button { display: none; }
+        
+        /* Image Upload Button */
+        .upload-btn { background: transparent; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; border: none; padding: 0; }
+        .upload-btn:hover { color: var(--text-normal); }
 
         /* --- Call Interface --- */
         .video-grid { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
@@ -105,7 +134,6 @@
         .call-controls { display: flex; gap: 10px; justify-content: center; width: 100%; }
         .call-controls button { flex: 1; }
 
-        /* --- Mobile Responsiveness --- */
         @media (max-width: 768px) {
             #sidebar { width: 100%; }
             #chat-area { display: none; width: 100%; }
@@ -138,7 +166,6 @@
             <div class="setting-group">
                 <label>Profile Picture</label>
                 <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Image will be compressed and saved automatically.</p>
             </div>
             <div class="setting-group">
                 <label>App Theme</label>
@@ -147,6 +174,7 @@
                     <button class="theme-btn" onclick="setTheme('light')">Light Mode</button>
                     <button class="theme-btn" onclick="setTheme('hacker')">Hacker</button>
                     <button class="theme-btn" onclick="setTheme('sunset')">Sunset</button>
+                    <button class="theme-btn" onclick="setTheme('naori')" style="grid-column: span 2; background: #2563EB; color: white;">🌊 Naori Mode 🌊</button>
                 </div>
             </div>
             <button id="btn-logout" class="btn-secondary" style="width: 100%;">Log Out</button>
@@ -161,8 +189,8 @@
                 <video id="remote-video" autoplay playsinline></video>
             </div>
             <div class="call-controls">
-                <button id="btn-answer-call" class="btn-success hidden">Answer Call</button>
-                <button id="btn-end-call" class="btn-danger">End Call / Hang Up</button>
+                <button id="btn-answer-call" class="btn-success hidden">Answer</button>
+                <button id="btn-end-call" class="btn-danger">Hang Up</button>
             </div>
         </div>
     </div>
@@ -190,10 +218,20 @@
                     <button id="btn-start-call" class="hidden">📞 Call</button>
                 </div>
             </div>
+            
+            <div id="pinned-bar">
+                <div class="pinned-header">📌 Pinned Messages</div>
+                <div id="pinned-content"></div>
+            </div>
+
             <div id="messages-container"></div>
+            
             <div id="input-area" class="hidden">
                 <form id="message-form">
-                    <input type="text" id="message-input" placeholder="Message..." required autocomplete="off">
+                    <label for="chat-image-upload" class="upload-btn">📷</label>
+                    <input type="file" id="chat-image-upload" accept="image/*" class="hidden">
+                    
+                    <input type="text" id="message-input" placeholder="Message..." autocomplete="off">
                     <button type="submit">Send</button>
                 </form>
             </div>
@@ -202,7 +240,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
@@ -228,27 +266,24 @@
         let currentChatId = null;
         let unsubscribeChat = null;
         let unsubscribeCallListener = null;
+        let unreadListeners = []; // Keep track to clean up
 
-        // --- WEBRTC CALLING VARIABLES ---
+        // --- WEBRTC Variables ---
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
-        let pc = null; // Peer Connection
-        let localStream = null;
-        let remoteStream = null;
-        let activeCallDocId = null; 
-        let activeCallUnsubscribe = null;
+        let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
 
-        // Load Theme
+        // Theme
         window.setTheme = function(themeName) {
             document.body.setAttribute('data-theme', themeName);
             localStorage.setItem('chat_theme', themeName);
         }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
-        // UI Toggles
+        // Modals
         document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('hidden'));
         document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
 
-        // Avatar Upload
+        // Profile Pic Upload
         document.getElementById('avatar-upload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -279,13 +314,14 @@
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
                 loadUsers();
-                listenForIncomingCalls(); // Start listening for rings!
+                listenForIncomingCalls();
             } else {
                 currentUser = null;
                 document.getElementById('app-container').classList.add('hidden');
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('settings-modal').classList.add('hidden');
                 if (unsubscribeCallListener) unsubscribeCallListener();
+                unreadListeners.forEach(unsub => unsub());
             }
         });
 
@@ -307,21 +343,47 @@
         });
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-        function getAvatarHTML(userData) { return userData.avatar ? `<img src="${userData.avatar}">` : userData.username.charAt(0).toUpperCase(); }
+        function getAvatarHTML(userData) { return userData?.avatar ? `<img src="${userData.avatar}">` : (userData?.username?.charAt(0).toUpperCase() || '?'); }
+        function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
 
+        // --- LOAD USERS & UNREAD DOTS ---
         function loadUsers() {
             onSnapshot(collection(db, 'users'), (snapshot) => {
                 const userList = document.getElementById('user-list');
                 userList.innerHTML = ''; 
-                snapshot.forEach((doc) => {
-                    const userData = doc.data();
+                // Clear old listeners
+                unreadListeners.forEach(unsub => unsub());
+                unreadListeners = [];
+
+                snapshot.forEach((docSnap) => {
+                    const userData = docSnap.data();
                     allUsersMap[userData.uid] = userData;
+                    
                     if (userData.uid !== currentUser.uid) {
                         const userDiv = document.createElement('div');
                         userDiv.classList.add('user-item');
-                        userDiv.innerHTML = `<div class="avatar-frame">${getAvatarHTML(userData)}</div> <span>${userData.username}</span>`;
+                        userDiv.id = `user-row-${userData.uid}`;
+                        
+                        userDiv.innerHTML = `
+                            <div class="avatar-frame">${getAvatarHTML(userData)}</div> 
+                            <span>${userData.username}</span>
+                            <div class="unread-dot" id="dot-${userData.uid}"></div>
+                        `;
                         userDiv.addEventListener('click', () => openChat(userData));
                         userList.appendChild(userDiv);
+
+                        // Listen for unread messages specifically for this chat room
+                        const chatId = generateChatId(currentUser.uid, userData.uid);
+                        const unsub = onSnapshot(doc(db, 'chats_meta', chatId), (metaSnap) => {
+                            const metaData = metaSnap.data();
+                            const dot = document.getElementById(`dot-${userData.uid}`);
+                            if (dot) {
+                                // If I am the one who hasn't read it, show the dot!
+                                dot.style.display = (metaData && metaData.unreadBy === currentUser.uid) ? 'block' : 'none';
+                            }
+                        });
+                        unreadListeners.push(unsub);
+
                     } else {
                         document.getElementById('my-username').textContent = userData.username;
                         document.getElementById('my-avatar').innerHTML = getAvatarHTML(userData);
@@ -332,47 +394,134 @@
 
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
-        function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
-
+        // --- OPEN CHAT & CLEAR UNREAD ---
         function openChat(targetUser) {
             currentChatUser = targetUser;
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
             document.getElementById('chat-title').textContent = targetUser.username;
             document.getElementById('input-area').classList.remove('hidden');
-            document.getElementById('btn-start-call').classList.remove('hidden'); // Show call button
+            document.getElementById('btn-start-call').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
+            
+            // Mark as read!
+            setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }, { merge: true });
+
             loadChatMessages();
         }
 
+        // Make edit/pin accessible globally for inline onclick
+        window.editMessage = async function(msgId, oldText) {
+            const newText = prompt("Edit your message:", oldText);
+            if (newText !== null && newText.trim() !== "") {
+                const newCipher = CryptoJS.AES.encrypt(newText.trim(), GLOBAL_OBFUSCATION_KEY).toString();
+                await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { 
+                    ciphertext: newCipher, 
+                    isEdited: true 
+                });
+            }
+        };
+
+        window.togglePin = async function(msgId, currentState) {
+            await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { 
+                isPinned: !currentState 
+            });
+        };
+
+        // --- LOAD MESSAGES & READ RECEIPTS ---
         function loadChatMessages() {
             const container = document.getElementById('messages-container');
+            const pinnedBar = document.getElementById('pinned-bar');
+            const pinnedContent = document.getElementById('pinned-content');
+            
             const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
             if (unsubscribeChat) unsubscribeChat();
 
-            unsubscribeChat = onSnapshot(q, (snapshot) => {
+            unsubscribeChat = onSnapshot(q, async (snapshot) => {
                 container.innerHTML = ''; 
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
+                pinnedContent.innerHTML = '';
+                let hasPins = false;
+                let lastMessageData = null;
+
+                // Check room metadata to see if friend has read our messages
+                const metaSnap = await getDoc(doc(db, 'chats_meta', currentChatId));
+                const metaData = metaSnap.data();
+                const friendHasRead = metaData && metaData.unreadBy === null;
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const msgId = docSnap.id;
+                    lastMessageData = data; // Keep tracking the last one
+
                     let decryptedText = "[Error]";
                     try { decryptedText = CryptoJS.AES.decrypt(data.ciphertext, GLOBAL_OBFUSCATION_KEY).toString(CryptoJS.enc.Utf8); } catch (e) {}
+                    
                     let timeString = data.createdAt ? data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
                     const senderProfile = allUsersMap[data.senderId];
                     const isMe = data.senderId === currentUser.uid;
 
-                    const msgDiv = document.createElement('div');
-                    msgDiv.classList.add('message');
-                    msgDiv.innerHTML = `
+                    // Content block (Text vs Image)
+                    let contentHTML = '';
+                    if (data.type === 'image') {
+                        contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image">`;
+                    } else {
+                        contentHTML = `<div class="msg-text">${decryptedText}</div>`;
+                    }
+
+                    // Actions Menu (Only I can edit my text, but anyone can pin)
+                    let actionsHTML = `<div class="msg-actions">
+                        <button class="msg-action-btn" onclick="togglePin('${msgId}', ${data.isPinned || false})">${data.isPinned ? 'Unpin' : 'Pin'}</button>`;
+                    if (isMe && data.type !== 'image') {
+                        // Pass the raw text safely by escaping quotes
+                        const safeText = decryptedText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        actionsHTML += `<button class="msg-action-btn" onclick="editMessage('${msgId}', '${safeText}')">Edit</button>`;
+                    }
+                    actionsHTML += `</div>`;
+
+                    const editedTag = data.isEdited ? `<span class="msg-edited">(edited)</span>` : '';
+
+                    const msgHTML = `
+                        ${actionsHTML}
                         <div class="avatar-frame">${getAvatarHTML(senderProfile)}</div>
                         <div class="msg-content">
-                            <div class="msg-header"><span class="msg-username" style="color: ${isMe ? 'var(--accent)' : 'var(--text-header)'}">${senderProfile.username}</span><span class="msg-time">Today at ${timeString}</span></div>
-                            <div class="msg-text">${decryptedText}</div>
+                            <div class="msg-header">
+                                <span class="msg-username" style="color: ${isMe ? 'var(--accent)' : 'var(--text-header)'}">${senderProfile?.username || 'Unknown'}</span>
+                                <span class="msg-time">Today at ${timeString} ${editedTag}</span>
+                            </div>
+                            ${contentHTML}
                         </div>`;
+
+                    // Add to main chat
+                    const msgDiv = document.createElement('div');
+                    msgDiv.classList.add('message');
+                    msgDiv.innerHTML = msgHTML;
                     container.appendChild(msgDiv);
+
+                    // Add to Pinned Bar if pinned
+                    if (data.isPinned) {
+                        hasPins = true;
+                        const pinDiv = document.createElement('div');
+                        pinDiv.classList.add('pinned-msg');
+                        pinDiv.innerHTML = `<strong>${senderProfile?.username}:</strong> ${data.type === 'image' ? '[Image]' : decryptedText}`;
+                        pinnedContent.appendChild(pinDiv);
+                    }
                 });
+
+                // Display pinned bar
+                pinnedBar.style.display = hasPins ? 'block' : 'none';
+
+                // Add Read Receipt to the bottom if the LAST message was sent by me, and the friend has read it
+                if (lastMessageData && lastMessageData.senderId === currentUser.uid && friendHasRead) {
+                    const readDiv = document.createElement('div');
+                    readDiv.classList.add('read-receipt');
+                    readDiv.textContent = 'Read';
+                    container.appendChild(readDiv);
+                }
+
                 container.scrollTop = container.scrollHeight;
             });
         }
 
+        // --- SEND TEXT MESSAGE ---
         document.getElementById('message-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const input = document.getElementById('message-input');
@@ -380,80 +529,98 @@
             if (text && currentChatId) {
                 try {
                     await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+                        type: 'text',
                         ciphertext: CryptoJS.AES.encrypt(text, GLOBAL_OBFUSCATION_KEY).toString(),
                         senderId: currentUser.uid,
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        isPinned: false,
+                        isEdited: false
                     });
+                    
+                    // Mark as unread for the friend
+                    await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
+                    
                     input.value = '';
                 } catch (error) { console.error("Error sending:", error); }
             }
         });
 
-        // ==========================================
-        // WEBRTC VIDEO CALLING ENGINE
-        // ==========================================
+        // --- SEND IMAGE MESSAGE ---
+        document.getElementById('chat-image-upload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentChatId) return;
+            
+            // Clear input so you can send same image twice if wanted
+            e.target.value = ''; 
 
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width, height = img.height;
+                    const MAX_SIZE = 800; // Larger max size for chat photos
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    
+                    const base64Img = canvas.toDataURL('image/jpeg', 0.6); // Compress quality
+                    
+                    try {
+                        await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+                            type: 'image',
+                            ciphertext: CryptoJS.AES.encrypt(base64Img, GLOBAL_OBFUSCATION_KEY).toString(),
+                            senderId: currentUser.uid,
+                            createdAt: serverTimestamp(),
+                            isPinned: false
+                        });
+                        
+                        // Mark as unread
+                        await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
+                    } catch (error) { console.error("Error sending image:", error); }
+                }
+            }
+        });
+
+        // ==========================================
+        // WEBRTC VIDEO CALLING ENGINE (Unchanged)
+        // ==========================================
         async function setupWebcam() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             remoteStream = new MediaStream();
             document.getElementById('local-video').srcObject = localStream;
             document.getElementById('remote-video').srcObject = remoteStream;
-            
             pc = new RTCPeerConnection(servers);
-            
-            // Push our tracks to the connection
             localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
-            // Pull friend's tracks from the connection
             pc.ontrack = (event) => event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
         }
 
-        // 1. You click "Call"
         document.getElementById('btn-start-call').addEventListener('click', async () => {
             document.getElementById('call-modal').classList.remove('hidden');
             document.getElementById('call-status').textContent = "Calling " + currentChatUser.username + "...";
             document.getElementById('btn-answer-call').classList.add('hidden');
-            
             await setupWebcam();
-
-            // Create a call ticket in Firebase
             const callDoc = doc(collection(db, 'calls'));
             activeCallDocId = callDoc.id;
             const offerCandidates = collection(callDoc, 'offerCandidates');
             const answerCandidates = collection(callDoc, 'answerCandidates');
-
-            // Send our networking info to Firebase
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
-
-            // Create the offer
             const offerDescription = await pc.createOffer();
             await pc.setLocalDescription(offerDescription);
-
-            // Save the offer so our friend can see it
-            const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
-            await setDoc(callDoc, { offer, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
-
-            // Listen for our friend answering
+            await setDoc(callDoc, { offer: { sdp: offerDescription.sdp, type: offerDescription.type }, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
             activeCallUnsubscribe = onSnapshot(callDoc, (snapshot) => {
                 const data = snapshot.data();
-                if (!pc.currentRemoteDescription && data?.answer) {
-                    pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    document.getElementById('call-status').textContent = "In Call";
-                }
+                if (!pc.currentRemoteDescription && data?.answer) { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('call-status').textContent = "In Call"; }
                 if (data?.status === 'ended') endCall();
             });
-
-            // Listen for our friend's networking info
-            onSnapshot(answerCandidates, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
-            });
+            onSnapshot(answerCandidates, (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
         });
 
-        // 2. Listen for incoming calls in the background
         function listenForIncomingCalls() {
-            const callsRef = collection(db, 'calls');
-            unsubscribeCallListener = onSnapshot(callsRef, (snapshot) => {
+            unsubscribeCallListener = onSnapshot(collection(db, 'calls'), (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     const data = change.doc.data();
                     if (change.type === 'added' && data.receiverId === currentUser.uid && data.status === 'ringing') {
@@ -467,50 +634,27 @@
             });
         }
 
-        // 3. You click "Answer"
         document.getElementById('btn-answer-call').addEventListener('click', async () => {
             document.getElementById('btn-answer-call').classList.add('hidden');
             document.getElementById('call-status').textContent = "Connecting...";
             await setupWebcam();
-
             const callDoc = doc(db, 'calls', activeCallDocId);
-            const answerCandidates = collection(callDoc, 'answerCandidates');
-            const offerCandidates = collection(callDoc, 'offerCandidates');
-
-            pc.onicecandidate = (event) => { if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON()); };
-
-            // Read the caller's offer
+            pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
             const callData = (await getDoc(callDoc)).data();
             await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
-
-            // Create our answer
             const answerDescription = await pc.createAnswer();
             await pc.setLocalDescription(answerDescription);
-
-            // Send our answer back via Firebase
             await updateDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'connected' });
             document.getElementById('call-status').textContent = "In Call";
-
-            // Listen for caller's networking info
-            onSnapshot(offerCandidates, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
-            });
+            onSnapshot(collection(callDoc, 'offerCandidates'), (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
         });
 
-        // 4. Hang up
-        document.getElementById('btn-end-call').addEventListener('click', () => {
-            if (activeCallDocId) updateDoc(doc(db, 'calls', activeCallDocId), { status: 'ended' });
-            endCall();
-        });
-
+        document.getElementById('btn-end-call').addEventListener('click', () => { if (activeCallDocId) updateDoc(doc(db, 'calls', activeCallDocId), { status: 'ended' }); endCall(); });
         function endCall() {
             if (pc) { pc.close(); pc = null; }
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
             if (activeCallUnsubscribe) activeCallUnsubscribe();
-            
             document.getElementById('call-modal').classList.add('hidden');
             document.getElementById('local-video').srcObject = null;
             document.getElementById('remote-video').srcObject = null;
