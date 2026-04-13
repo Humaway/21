@@ -40,6 +40,12 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .toast.fade-out { opacity: 0; transition: opacity 0.3s ease-out; }
 
+        /* Image Lightbox */
+        #lightbox { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s ease-out; cursor: zoom-out; backdrop-filter: blur(5px); }
+        #lightbox.active { opacity: 1; pointer-events: all; }
+        #lightbox img { max-width: 95vw; max-height: 95dvh; border-radius: 8px; transform: scale(0.9); transition: transform 0.2s ease-out; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        #lightbox.active img { transform: scale(1); }
+
         /* Modals & Auth */
         .modal { background: var(--bg-secondary); padding: 40px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; position: absolute; max-height: 90dvh; overflow-y: auto; }
         .modal h2 { color: var(--text-header); text-align: center; margin-bottom: 20px; }
@@ -123,7 +129,9 @@
         .reaction-badge.active { background: rgba(88, 101, 242, 0.2); border-color: var(--accent); }
         .reaction-badge:hover { background: var(--bg-input); }
 
-        .msg-image { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 5px; object-fit: contain; background: var(--bg-tertiary); }
+        /* Lightbox Image Styles */
+        .msg-image { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 5px; object-fit: contain; background: var(--bg-tertiary); cursor: zoom-in; }
+        
         .read-receipt { text-align: right; font-size: 0.75rem; color: var(--accent); padding-right: 16px; margin-top: 5px; margin-bottom: 10px; font-weight: bold; }
 
         #input-area { padding: 0 16px 24px 16px; flex-shrink: 0; }
@@ -133,6 +141,7 @@
         .upload-btn { background: transparent; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; border: none; padding: 0; }
         .upload-btn:hover { color: var(--text-normal); }
 
+        /* Foldable & Tablet UI Optimization */
         @media (max-width: 768px) {
             #sidebar { width: 100%; }
             #chat-area { display: none; width: 100%; }
@@ -142,9 +151,25 @@
             .video-grid { flex-direction: column; align-items: center; }
             .video-grid video { width: 100%; max-width: 100%; }
         }
+        
+        /* Ultra-Wide Inner Screen Optimization */
+        @media (min-width: 1024px) {
+            #messages-container { padding-left: 10vw; padding-right: 10vw; }
+            #input-area { padding-left: 10vw; padding-right: 10vw; }
+            #pinned-bar { padding-left: 10vw; padding-right: 10vw; }
+        }
+        @media (min-width: 1400px) {
+            #messages-container { padding-left: 15vw; padding-right: 15vw; }
+            #input-area { padding-left: 15vw; padding-right: 15vw; }
+            #pinned-bar { padding-left: 15vw; padding-right: 15vw; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="lightbox" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Expanded View">
+    </div>
 
     <div id="toast-container"></div>
 
@@ -166,22 +191,18 @@
         <div class="modal">
             <button id="close-settings" class="close-btn">✖</button>
             <h2>User Settings</h2>
-            
             <div class="setting-group">
                 <label>Profile Picture</label>
                 <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
             </div>
-            
             <div class="setting-group">
                 <label>Display Name</label>
                 <input type="text" id="settings-username-input" placeholder="Update Username">
             </div>
-
             <div class="setting-group">
                 <label>Name Color</label>
                 <input type="color" id="settings-color-input" value="#ffffff">
             </div>
-
             <div class="setting-group">
                 <label>App Theme</label>
                 <div class="theme-buttons">
@@ -198,7 +219,6 @@
     </div>
 
     <div id="app-container" class="hidden">
-        
         <div id="sidebar">
             <div class="sidebar-header">
                 <span>Direct Messages</span>
@@ -299,6 +319,50 @@
             window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed: ', err)));
         }
 
+        // ==========================================
+        // NEW: AUDIO SYNTHESIZER
+        // ==========================================
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+        }
+
+        function playPopSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playDingSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        // --- IMAGE LIGHTBOX ---
+        window.openLightbox = function(src) {
+            document.getElementById('lightbox-img').src = src;
+            document.getElementById('lightbox').classList.add('active');
+        };
+        window.closeLightbox = function() {
+            document.getElementById('lightbox').classList.remove('active');
+            setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200);
+        };
+
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - base64String.length % 4) % 4);
             const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -324,10 +388,6 @@
         }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
-        // ==========================================
-        // 2. SETTINGS & PROFILE UPDATES
-        // ==========================================
-
         document.getElementById('btn-settings').addEventListener('click', () => {
             const myProfile = allUsersMap[currentUser.uid];
             if (myProfile) {
@@ -336,26 +396,18 @@
             }
             document.getElementById('settings-modal').classList.remove('hidden');
         });
-
         document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
 
         document.getElementById('btn-save-profile').addEventListener('click', async () => {
             const newName = document.getElementById('settings-username-input').value.trim();
             const newColor = document.getElementById('settings-color-input').value;
             if (newName && currentUser) {
-                await setDoc(doc(db, "users", currentUser.uid), { 
-                    username: newName, 
-                    nameColor: newColor 
-                }, { merge: true });
+                await setDoc(doc(db, "users", currentUser.uid), { username: newName, nameColor: newColor }, { merge: true });
                 document.getElementById('settings-modal').classList.add('hidden');
                 showToast("Success", "Profile updated successfully!");
             }
         });
 
-        // ==========================================
-        // 3. AUTHENTICATION
-        // ==========================================
-        
         function requestNotificationPermission() {
             if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
                 Notification.requestPermission();
@@ -363,6 +415,7 @@
         }
 
         document.getElementById('btn-signup').addEventListener('click', async () => {
+            initAudio(); // Wake up audio context on user interaction
             requestNotificationPermission(); 
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
@@ -376,6 +429,7 @@
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            initAudio(); // Wake up audio context on user interaction
             requestNotificationPermission(); 
             try { await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value); } 
             catch (error) { document.getElementById('auth-error').textContent = error.message; }
@@ -392,10 +446,7 @@
                         try {
                             let subscription = await registration.pushManager.getSubscription();
                             if (!subscription) {
-                                subscription = await registration.pushManager.subscribe({
-                                    userVisibleOnly: true,
-                                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-                                });
+                                subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
                             }
                             await setDoc(doc(db, "users", currentUser.uid), { pushSubscription: JSON.parse(JSON.stringify(subscription)) }, { merge: true });
                         } catch(e) { console.warn("Push subscription failed:", e); }
@@ -416,10 +467,6 @@
 
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-        // ==========================================
-        // 4. USER PROFILE & LIST
-        // ==========================================
-        
         document.getElementById('avatar-upload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -435,9 +482,7 @@
                     else { if (height > 100) { width *= 100 / height; height = 100; } }
                     canvas.width = width; canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                    if (currentUser) {
-                        await setDoc(doc(db, "users", currentUser.uid), { avatar: canvas.toDataURL('image/jpeg', 0.8) }, { merge: true });
-                    }
+                    if (currentUser) { await setDoc(doc(db, "users", currentUser.uid), { avatar: canvas.toDataURL('image/jpeg', 0.8) }, { merge: true }); }
                 }
             }
         });
@@ -496,10 +541,6 @@
 
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
-        // ==========================================
-        // 5. CHAT, EDITING, PINNING, & REACTIONS
-        // ==========================================
-
         function openChat(targetUser) {
             currentChatUser = targetUser;
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
@@ -549,6 +590,7 @@
 
             let isMyLastMessage = false;
             let hasFriendRead = false;
+            let isFirstLoad = true;
 
             const updateReadReceiptUI = () => {
                 let receiptEl = document.getElementById('dynamic-read-receipt');
@@ -579,6 +621,15 @@
                 let hasPins = false;
                 let lastMessageData = null;
 
+                // SOUND TRIGGER: Play Ding if new message from someone else
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added' && !isFirstLoad) {
+                        if (change.doc.data().senderId !== currentUser.uid) {
+                            playDingSound();
+                        }
+                    }
+                });
+
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const msgId = docSnap.id;
@@ -593,7 +644,7 @@
 
                     let contentHTML = '';
                     if (data.type === 'image') {
-                        contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image">`;
+                        contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image" onclick="openLightbox(this.src)">`;
                     } else {
                         contentHTML = `<div class="msg-text">${decryptedText}</div>`;
                     }
@@ -656,12 +707,10 @@
                 isMyLastMessage = lastMessageData && lastMessageData.senderId === currentUser.uid;
                 updateReadReceiptUI();
                 container.scrollTop = container.scrollHeight;
+                
+                isFirstLoad = false;
             });
         }
-
-        // ==========================================
-        // 6. SENDING MESSAGES & PUSH TRIGGERS
-        // ==========================================
 
         document.getElementById('message-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
@@ -669,6 +718,9 @@
             const text = input.value.trim();
             if (text && currentChatId) {
                 try {
+                    // SOUND TRIGGER
+                    playPopSound();
+
                     await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
                         type: 'text',
                         ciphertext: CryptoJS.AES.encrypt(text, GLOBAL_OBFUSCATION_KEY).toString(),
@@ -719,6 +771,7 @@
                     const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
                     
                     try {
+                        playPopSound(); // SOUND TRIGGER
                         await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
                             type: 'image',
                             ciphertext: CryptoJS.AES.encrypt(base64Img, GLOBAL_OBFUSCATION_KEY).toString(),
@@ -747,10 +800,6 @@
             }
         });
 
-        // ==========================================
-        // 7. WEBRTC DOCKED VIDEO CALLING
-        // ==========================================
-        
         async function setupWebcam() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             remoteStream = new MediaStream();
@@ -765,21 +814,15 @@
             document.getElementById('call-panel').classList.remove('hidden');
             document.getElementById('call-status').textContent = "Calling " + currentChatUser.username + "...";
             document.getElementById('btn-answer-call').classList.add('hidden');
-            
             await setupWebcam();
-            
             const callDoc = doc(collection(db, 'calls'));
             activeCallDocId = callDoc.id;
             const offerCandidates = collection(callDoc, 'offerCandidates');
             const answerCandidates = collection(callDoc, 'answerCandidates');
-            
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
-            
             const offerDescription = await pc.createOffer();
             await pc.setLocalDescription(offerDescription);
-            
             await setDoc(callDoc, { offer: { sdp: offerDescription.sdp, type: offerDescription.type }, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
-            
             activeCallUnsubscribe = onSnapshot(callDoc, (snapshot) => {
                 const data = snapshot.data();
                 if (!pc.currentRemoteDescription && data?.answer) { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('call-status').textContent = "In Call"; }
@@ -823,21 +866,15 @@
         document.getElementById('btn-answer-call').addEventListener('click', async () => {
             document.getElementById('btn-answer-call').classList.add('hidden');
             document.getElementById('call-status').textContent = "Connecting...";
-            
             await setupWebcam();
-            
             const callDoc = doc(db, 'calls', activeCallDocId);
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
-            
             const callData = (await getDoc(callDoc)).data();
             await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
-            
             const answerDescription = await pc.createAnswer();
             await pc.setLocalDescription(answerDescription);
-            
             await updateDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'connected' });
             document.getElementById('call-status').textContent = "In Call";
-            
             onSnapshot(collection(callDoc, 'offerCandidates'), (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
         });
 
@@ -847,7 +884,6 @@
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
             if (activeCallUnsubscribe) activeCallUnsubscribe();
-            
             document.getElementById('call-panel').classList.add('hidden');
             document.getElementById('local-video').srcObject = null;
             document.getElementById('remote-video').srcObject = null;
