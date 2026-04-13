@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LMessage</title>
+    <title>Naori Messenger</title>
     
     <link rel="manifest" href="manifest.json">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <style>
@@ -23,7 +22,6 @@
             --divider: #42464D;
         }
 
-        /* --- Custom Themes --- */
         [data-theme="light"] { --bg-primary: #ffffff; --bg-secondary: #f2f3f5; --bg-tertiary: #e3e5e8; --bg-input: #ebedef; --text-normal: #2e3338; --text-muted: #747f8d; --text-header: #060607; --accent: #5865F2; --divider: #e3e5e8; }
         [data-theme="hacker"] { --bg-primary: #0a0a0a; --bg-secondary: #000000; --bg-tertiary: #111111; --bg-input: #1a1a1a; --text-normal: #00ff00; --text-muted: #008800; --text-header: #00ff00; --accent: #00cc00; --divider: #222222; }
         [data-theme="sunset"] { --bg-primary: #2d1b2e; --bg-secondary: #1f1320; --bg-tertiary: #3a233b; --bg-input: #4a2d4b; --text-normal: #fcd5ce; --text-muted: #d8b4e2; --text-header: #ffb5a7; --accent: #ff9f1c; --divider: #5a375c; }
@@ -34,7 +32,7 @@
         #app-container { display: flex; width: 100vw; height: 100dvh; position: relative; }
         .hidden { display: none !important; }
 
-        /* --- In-App Toast Notifications --- */
+        /* Toast Notifications */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 90vw; }
         .toast { background: var(--bg-secondary); border-left: 4px solid var(--accent); color: var(--text-normal); padding: 15px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.3s ease-out; position: relative; overflow: hidden; }
         .toast-title { font-weight: bold; color: var(--text-header); margin-bottom: 5px; font-size: 0.95rem; }
@@ -42,13 +40,14 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .toast.fade-out { opacity: 0; transition: opacity 0.3s ease-out; }
 
-        /* --- Modals & Auth --- */
+        /* Modals & Auth */
         .modal { background: var(--bg-secondary); padding: 40px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; position: absolute; max-height: 90dvh; overflow-y: auto; }
         .modal h2 { color: var(--text-header); text-align: center; margin-bottom: 20px; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .form-col { display: flex; flex-direction: column; gap: 15px; }
-        input { background: var(--bg-tertiary); border: 1px solid var(--bg-tertiary); color: var(--text-normal); padding: 12px; border-radius: 4px; outline: none; font-size: 1rem; }
+        input { background: var(--bg-tertiary); border: 1px solid var(--bg-tertiary); color: var(--text-normal); padding: 12px; border-radius: 4px; outline: none; font-size: 1rem; width: 100%;}
         input:focus { border-color: var(--accent); }
+        input[type="color"] { padding: 2px; height: 40px; cursor: pointer; }
         button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
         button:hover { background: var(--accent-hover); }
         .btn-secondary { background: var(--bg-input); }
@@ -57,7 +56,7 @@
         .btn-success { background: #3ba55c; }
         .error { color: #ed4245; font-size: 0.85rem; text-align: center; }
 
-        /* --- Settings Panel --- */
+        /* Settings Panel */
         .theme-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .theme-btn { padding: 8px; font-size: 0.9rem; background: var(--bg-input); }
         .setting-group { margin-bottom: 20px; border-bottom: 1px solid var(--divider); padding-bottom: 15px; }
@@ -65,8 +64,9 @@
         .close-btn { position: absolute; top: 15px; right: 15px; background: transparent; color: var(--text-muted); font-size: 1.2rem; padding: 0; width: auto; }
         .avatar-frame { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 12px; background: var(--accent); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; overflow: hidden; flex-shrink: 0; }
         .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+        .save-settings-btn { background: #3ba55c; width: 100%; margin-top: 10px; }
 
-        /* --- Sidebar --- */
+        /* Sidebar */
         #sidebar { width: 280px; background: var(--bg-secondary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--divider); }
         .sidebar-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bg-tertiary); font-weight: 600; color: var(--text-header); }
         .icon-btn { background: transparent; color: var(--text-muted); padding: 4px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; }
@@ -80,14 +80,22 @@
 
         #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
         .user-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-        .user-details strong { color: var(--text-header); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-details strong { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* --- Chat Area --- */
+        /* Chat Area */
         #chat-area { flex: 1; background: var(--bg-primary); display: flex; flex-direction: column; min-width: 0; }
-        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid var(--divider); font-weight: 600; color: var(--text-header); gap: 10px; flex-shrink: 0; }
+        .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid var(--divider); font-weight: 600; color: var(--text-header); gap: 10px; flex-shrink: 0; background: var(--bg-primary); z-index: 5;}
         #mobile-back-btn { display: none; background: transparent; padding: 5px; color: var(--text-muted); }
         .header-actions { margin-left: auto; display: flex; gap: 10px; }
         #btn-start-call { background: var(--bg-tertiary); color: var(--text-normal); padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+
+        /* Docked Call Panel */
+        #call-panel { background: var(--bg-tertiary); border-bottom: 1px solid var(--divider); padding: 15px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 4; }
+        .call-panel-header { display: flex; justify-content: space-between; align-items: center; }
+        .video-grid { display: flex; gap: 15px; justify-content: center; width: 100%; }
+        .video-grid video { background: #000; border-radius: 8px; width: 48%; max-width: 500px; aspect-ratio: 16/9; object-fit: cover; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .call-controls { display: flex; gap: 10px; }
+        .call-controls button { padding: 6px 12px; font-size: 0.85rem; }
 
         #pinned-bar { background: var(--bg-secondary); border-bottom: 1px solid var(--divider); padding: 10px 16px; max-height: 100px; overflow-y: auto; font-size: 0.85rem; color: var(--text-muted); display: none; flex-shrink: 0; }
         .pinned-msg { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 5px; background: var(--bg-tertiary); padding: 5px 10px; border-radius: 4px; }
@@ -97,34 +105,33 @@
         .message { display: flex; padding: 8px 16px; margin-top: 8px; position: relative; }
         .message:hover { background: rgba(4, 4, 5, 0.07); }
         
-        .msg-actions { position: absolute; right: 16px; top: -10px; background: var(--bg-secondary); border: 1px solid var(--divider); border-radius: 4px; display: none; padding: 2px; z-index: 10; }
+        .msg-actions { position: absolute; right: 16px; top: -15px; background: var(--bg-secondary); border: 1px solid var(--divider); border-radius: 8px; display: none; padding: 2px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2); align-items: center;}
         .message:hover .msg-actions { display: flex; }
-        .msg-action-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
+        .msg-action-btn { background: transparent; color: var(--text-muted); border: none; padding: 6px; cursor: pointer; font-size: 1rem; border-radius: 4px; }
         .msg-action-btn:hover { background: var(--bg-input); color: var(--text-normal); }
+        .quick-reacts { display: flex; border-right: 1px solid var(--divider); margin-right: 4px; padding-right: 4px; }
 
         .msg-content { display: flex; flex-direction: column; width: 100%; }
         .msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-        .msg-username { color: var(--text-header); font-weight: 500; font-size: 1rem; }
+        .msg-username { font-weight: 500; font-size: 1rem; }
         .msg-time { color: var(--text-muted); font-size: 0.75rem; }
         .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         .msg-text { color: var(--text-normal); font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
         
+        .reactions-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+        .reaction-badge { background: var(--bg-tertiary); border: 1px solid var(--divider); color: var(--text-normal); padding: 2px 6px; border-radius: 12px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 4px; user-select: none; }
+        .reaction-badge.active { background: rgba(88, 101, 242, 0.2); border-color: var(--accent); }
+        .reaction-badge:hover { background: var(--bg-input); }
+
         .msg-image { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 5px; object-fit: contain; background: var(--bg-tertiary); }
-        
         .read-receipt { text-align: right; font-size: 0.75rem; color: var(--accent); padding-right: 16px; margin-top: 5px; margin-bottom: 10px; font-weight: bold; }
 
-        #input-area { padding: 0 16px 24px 16px; }
+        #input-area { padding: 0 16px 24px 16px; flex-shrink: 0; }
         #message-form { display: flex; background: var(--bg-input); border-radius: 8px; padding: 10px 16px; align-items: center; gap: 10px; }
         #message-form input[type="text"] { flex: 1; background: transparent; border: none; padding: 0; color: var(--text-normal); font-size: 1rem; }
         #message-form button { display: none; }
         .upload-btn { background: transparent; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; border: none; padding: 0; }
         .upload-btn:hover { color: var(--text-normal); }
-
-        /* --- Call Interface --- */
-        .video-grid { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-        video { background: #000; border-radius: 8px; width: 100%; max-width: 250px; aspect-ratio: 4/3; object-fit: cover; }
-        .call-controls { display: flex; gap: 10px; justify-content: center; width: 100%; }
-        .call-controls button { flex: 1; }
 
         @media (max-width: 768px) {
             #sidebar { width: 100%; }
@@ -132,6 +139,8 @@
             #app-container.chat-active #sidebar { display: none; }
             #app-container.chat-active #chat-area { display: flex; }
             #mobile-back-btn { display: block; }
+            .video-grid { flex-direction: column; align-items: center; }
+            .video-grid video { width: 100%; max-width: 100%; }
         }
     </style>
 </head>
@@ -157,10 +166,22 @@
         <div class="modal">
             <button id="close-settings" class="close-btn">✖</button>
             <h2>User Settings</h2>
+            
             <div class="setting-group">
                 <label>Profile Picture</label>
                 <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
             </div>
+            
+            <div class="setting-group">
+                <label>Display Name</label>
+                <input type="text" id="settings-username-input" placeholder="Update Username">
+            </div>
+
+            <div class="setting-group">
+                <label>Name Color</label>
+                <input type="color" id="settings-color-input" value="#ffffff">
+            </div>
+
             <div class="setting-group">
                 <label>App Theme</label>
                 <div class="theme-buttons">
@@ -168,24 +189,11 @@
                     <button class="theme-btn" onclick="setTheme('light')">Light Mode</button>
                     <button class="theme-btn" onclick="setTheme('hacker')">Hacker</button>
                     <button class="theme-btn" onclick="setTheme('sunset')">Sunset</button>
-                    <button class="theme-btn" onclick="setTheme('naori')" style="grid-column: span 2; background: #00f5d4; color: #050a1f; font-weight: bold;">🌊 Naori Mode (Bioluminescent) 🌊</button>
+                    <button class="theme-btn" onclick="setTheme('naori')" style="grid-column: span 2; background: #00f5d4; color: #050a1f; font-weight: bold;">🌊 Naori Mode 🌊</button>
                 </div>
             </div>
-            <button id="btn-logout" class="btn-secondary" style="width: 100%;">Log Out</button>
-        </div>
-    </div>
-
-    <div id="call-modal" class="modal-overlay hidden">
-        <div class="modal" style="max-width: 600px;">
-            <h2 id="call-status">Calling...</h2>
-            <div class="video-grid">
-                <video id="local-video" autoplay playsinline muted></video>
-                <video id="remote-video" autoplay playsinline></video>
-            </div>
-            <div class="call-controls">
-                <button id="btn-answer-call" class="btn-success hidden">Answer</button>
-                <button id="btn-end-call" class="btn-danger">Hang Up</button>
-            </div>
+            <button id="btn-save-profile" class="save-settings-btn">Save Profile Updates</button>
+            <button id="btn-logout" class="btn-secondary" style="width: 100%; margin-top: 10px;">Log Out</button>
         </div>
     </div>
 
@@ -198,7 +206,7 @@
             <div id="user-list"></div>
             <div id="current-user-bar">
                 <div id="my-avatar" class="avatar-frame">?</div>
-                <div class="user-details"><strong id="my-username">Loading...</strong></div>
+                <div class="user-details"><strong id="my-username" style="color: white;">Loading...</strong></div>
                 <button id="btn-settings" class="icon-btn">⚙️</button>
             </div>
         </div>
@@ -213,13 +221,26 @@
                 </div>
             </div>
             
+            <div id="call-panel" class="hidden">
+                <div class="call-panel-header">
+                    <span id="call-status" style="font-weight: bold; color: var(--accent); font-size: 1.1rem;">Calling...</span>
+                    <div class="call-controls">
+                        <button id="btn-answer-call" class="btn-success hidden">Answer</button>
+                        <button id="btn-end-call" class="btn-danger">Hang Up</button>
+                    </div>
+                </div>
+                <div class="video-grid">
+                    <video id="local-video" autoplay playsinline muted></video>
+                    <video id="remote-video" autoplay playsinline></video>
+                </div>
+            </div>
+
             <div id="pinned-bar">
                 <div class="pinned-header">📌 Pinned Messages</div>
                 <div id="pinned-content"></div>
             </div>
 
-            <div id="messages-container">
-                </div>
+            <div id="messages-container"></div>
             
             <div id="input-area" class="hidden">
                 <form id="message-form">
@@ -238,10 +259,9 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // ==========================================
-        // 1. YOUR API CONFIGURATIONS
+        // 1. CONFIGURATIONS
         // ==========================================
         
-        // TODO: PASTE YOUR FIREBASE CONFIG HERE
         const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
@@ -258,10 +278,6 @@
         const VAPID_PUBLIC_KEY = "BDqR8D_4VJvnToLK1hTUZy8cG_WNCDnPLkDeNE28IZsaBX4NjKOV2kxeLJSrRH02M0YYsOOrfpKamuG7h6KD5x4";
         const VERCEL_API_URL = "https://backend-gray-psi-14.vercel.app/api/notify";
 
-        // ==========================================
-        // 2. APP INITIALIZATION
-        // ==========================================
-        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -279,18 +295,10 @@
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
 
-        // --- PWA SERVICE WORKER REGISTRATION ---
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js').then(function(registration) {
-                    console.log('ServiceWorker registered');
-                }).catch(function(err) {
-                    console.log('ServiceWorker failed: ', err);
-                });
-            });
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed: ', err)));
         }
 
-        // Helper for Push Subscriptions
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - base64String.length % 4) % 4);
             const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -300,7 +308,6 @@
             return outputArray;
         }
 
-        // --- IN-APP TOAST ENGINE ---
         function showToast(title, body, onClickCallback) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -311,18 +318,42 @@
             setTimeout(() => { if (toast.parentNode) { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); } }, 4000);
         }
 
-        // --- THEME ---
         window.setTheme = function(themeName) {
             document.body.setAttribute('data-theme', themeName);
             localStorage.setItem('chat_theme', themeName);
         }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
-        document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('hidden'));
+        // ==========================================
+        // 2. SETTINGS & PROFILE UPDATES
+        // ==========================================
+
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            const myProfile = allUsersMap[currentUser.uid];
+            if (myProfile) {
+                document.getElementById('settings-username-input').value = myProfile.username || '';
+                document.getElementById('settings-color-input').value = myProfile.nameColor || '#ffffff';
+            }
+            document.getElementById('settings-modal').classList.remove('hidden');
+        });
+
         document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
 
+        document.getElementById('btn-save-profile').addEventListener('click', async () => {
+            const newName = document.getElementById('settings-username-input').value.trim();
+            const newColor = document.getElementById('settings-color-input').value;
+            if (newName && currentUser) {
+                await setDoc(doc(db, "users", currentUser.uid), { 
+                    username: newName, 
+                    nameColor: newColor 
+                }, { merge: true });
+                document.getElementById('settings-modal').classList.add('hidden');
+                showToast("Success", "Profile updated successfully!");
+            }
+        });
+
         // ==========================================
-        // 3. AUTHENTICATION & NOTIFICATION PERMS
+        // 3. AUTHENTICATION
         // ==========================================
         
         function requestNotificationPermission() {
@@ -339,7 +370,7 @@
             if (!username) return document.getElementById('auth-error').textContent = "Username required";
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username });
+                await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username, nameColor: '#ffffff' });
             } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
@@ -356,7 +387,6 @@
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
                 
-                // Subscribe to Push Notifications Server-Side
                 if ("Notification" in window && navigator.serviceWorker) {
                     navigator.serviceWorker.ready.then(async (registration) => {
                         try {
@@ -371,7 +401,6 @@
                         } catch(e) { console.warn("Push subscription failed:", e); }
                     });
                 }
-
                 loadUsers();
                 listenForIncomingCalls();
             } else {
@@ -408,7 +437,6 @@
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     if (currentUser) {
                         await setDoc(doc(db, "users", currentUser.uid), { avatar: canvas.toDataURL('image/jpeg', 0.8) }, { merge: true });
-                        alert("Avatar updated!");
                     }
                 }
             }
@@ -431,11 +459,10 @@
                     if (userData.uid !== currentUser.uid) {
                         const userDiv = document.createElement('div');
                         userDiv.classList.add('user-item');
-                        userDiv.id = `user-row-${userData.uid}`;
                         
                         userDiv.innerHTML = `
                             <div class="avatar-frame">${getAvatarHTML(userData)}</div> 
-                            <span>${userData.username}</span>
+                            <span style="color: ${userData.nameColor || 'var(--text-normal)'}; font-weight: 500;">${userData.username}</span>
                             <div class="unread-dot" id="dot-${userData.uid}"></div>
                         `;
                         userDiv.addEventListener('click', () => openChat(userData));
@@ -453,7 +480,6 @@
                             
                             if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) {
                                 showToast(`New Message`, `From ${userData.username}`, () => openChat(userData));
-                                // The Service Worker + Vercel will handle the background push.
                             }
                             previousUnreadState = currentlyUnread;
                         });
@@ -461,6 +487,7 @@
 
                     } else {
                         document.getElementById('my-username').textContent = userData.username;
+                        document.getElementById('my-username').style.color = userData.nameColor || 'white';
                         document.getElementById('my-avatar').innerHTML = getAvatarHTML(userData);
                     }
                 });
@@ -470,13 +497,14 @@
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
         // ==========================================
-        // 5. CHAT, EDITING, & PINNING
+        // 5. CHAT, EDITING, PINNING, & REACTIONS
         // ==========================================
 
         function openChat(targetUser) {
             currentChatUser = targetUser;
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
             document.getElementById('chat-title').textContent = targetUser.username;
+            document.getElementById('chat-title').style.color = targetUser.nameColor || 'var(--text-header)';
             document.getElementById('input-area').classList.remove('hidden');
             document.getElementById('btn-start-call').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
@@ -495,6 +523,20 @@
 
         window.togglePin = async function(msgId, currentState) {
             await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { isPinned: !currentState });
+        };
+
+        window.toggleReaction = async function(msgId, emoji) {
+            const msgRef = doc(db, 'chats', currentChatId, 'messages', msgId);
+            const msgSnap = await getDoc(msgRef);
+            if (msgSnap.exists()) {
+                const data = msgSnap.data();
+                let reactions = data.reactions || {};
+                if (!reactions[emoji]) reactions[emoji] = [];
+                const userIndex = reactions[emoji].indexOf(currentUser.uid);
+                if (userIndex > -1) { reactions[emoji].splice(userIndex, 1); } 
+                else { reactions[emoji].push(currentUser.uid); }
+                await updateDoc(msgRef, { reactions: reactions });
+            }
         };
 
         function loadChatMessages() {
@@ -516,7 +558,6 @@
                     receiptEl.classList.add('read-receipt');
                     container.appendChild(receiptEl);
                 }
-                
                 if (isMyLastMessage && hasFriendRead) {
                     receiptEl.textContent = 'Read';
                     receiptEl.style.display = 'block';
@@ -557,8 +598,25 @@
                         contentHTML = `<div class="msg-text">${decryptedText}</div>`;
                     }
 
+                    let reactionsHTML = '<div class="reactions-container">';
+                    if (data.reactions) {
+                        for (const [emoji, users] of Object.entries(data.reactions)) {
+                            if (users.length > 0) {
+                                const iReacted = users.includes(currentUser.uid);
+                                reactionsHTML += `<span class="reaction-badge ${iReacted ? 'active' : ''}" onclick="toggleReaction('${msgId}', '${emoji}')">${emoji} ${users.length}</span>`;
+                            }
+                        }
+                    }
+                    reactionsHTML += '</div>';
+
                     let actionsHTML = `<div class="msg-actions">
+                        <span class="quick-reacts">
+                            <button class="msg-action-btn" onclick="toggleReaction('${msgId}', '👍')">👍</button>
+                            <button class="msg-action-btn" onclick="toggleReaction('${msgId}', '❤️')">❤️</button>
+                            <button class="msg-action-btn" onclick="toggleReaction('${msgId}', '😂')">😂</button>
+                        </span>
                         <button class="msg-action-btn" onclick="togglePin('${msgId}', ${data.isPinned || false})">${data.isPinned ? 'Unpin' : 'Pin'}</button>`;
+                    
                     if (isMe && data.type !== 'image') {
                         const safeText = decryptedText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         actionsHTML += `<button class="msg-action-btn" onclick="editMessage('${msgId}', '${safeText}')">Edit</button>`;
@@ -566,16 +624,18 @@
                     actionsHTML += `</div>`;
 
                     const editedTag = data.isEdited ? `<span class="msg-edited">(edited)</span>` : '';
+                    const customNameColor = senderProfile?.nameColor || 'var(--text-header)';
 
                     const msgHTML = `
                         ${actionsHTML}
                         <div class="avatar-frame">${getAvatarHTML(senderProfile)}</div>
                         <div class="msg-content">
                             <div class="msg-header">
-                                <span class="msg-username" style="color: ${isMe ? 'var(--accent)' : 'var(--text-header)'}">${senderProfile?.username || 'Unknown'}</span>
+                                <span class="msg-username" style="color: ${customNameColor}">${senderProfile?.username || 'Unknown'}</span>
                                 <span class="msg-time">Today at ${timeString} ${editedTag}</span>
                             </div>
                             ${contentHTML}
+                            ${reactionsHTML}
                         </div>`;
 
                     const msgDiv = document.createElement('div');
@@ -587,7 +647,7 @@
                         hasPins = true;
                         const pinDiv = document.createElement('div');
                         pinDiv.classList.add('pinned-msg');
-                        pinDiv.innerHTML = `<strong>${senderProfile?.username}:</strong> ${data.type === 'image' ? '[Image]' : decryptedText}`;
+                        pinDiv.innerHTML = `<strong style="color: ${customNameColor}">${senderProfile?.username}:</strong> ${data.type === 'image' ? '[Image]' : decryptedText}`;
                         pinnedContent.appendChild(pinDiv);
                     }
                 });
@@ -600,7 +660,7 @@
         }
 
         // ==========================================
-        // 6. SENDING MESSAGES & TRIGGERING PUSH
+        // 6. SENDING MESSAGES & PUSH TRIGGERS
         // ==========================================
 
         document.getElementById('message-form').addEventListener('submit', async (e) => {
@@ -615,12 +675,12 @@
                         senderId: currentUser.uid,
                         createdAt: serverTimestamp(),
                         isPinned: false,
-                        isEdited: false
+                        isEdited: false,
+                        reactions: {}
                     });
                     
                     await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
                     
-                    // Trigger Vercel Push Server
                     if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                         fetch(VERCEL_API_URL, {
                             method: 'POST',
@@ -633,7 +693,6 @@
                             })
                         }).catch(err => console.error("Vercel Push Failed:", err));
                     }
-                    
                     input.value = '';
                 } catch (error) { console.error("Error sending:", error); }
             }
@@ -657,7 +716,6 @@
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                     canvas.width = width; canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                    
                     const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
                     
                     try {
@@ -666,12 +724,12 @@
                             ciphertext: CryptoJS.AES.encrypt(base64Img, GLOBAL_OBFUSCATION_KEY).toString(),
                             senderId: currentUser.uid,
                             createdAt: serverTimestamp(),
-                            isPinned: false
+                            isPinned: false,
+                            reactions: {}
                         });
                         
                         await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
 
-                        // Trigger Vercel Push Server for Image
                         if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                             fetch(VERCEL_API_URL, {
                                 method: 'POST',
@@ -690,7 +748,7 @@
         });
 
         // ==========================================
-        // 7. WEBRTC VIDEO CALLING
+        // 7. WEBRTC DOCKED VIDEO CALLING
         // ==========================================
         
         async function setupWebcam() {
@@ -704,18 +762,24 @@
         }
 
         document.getElementById('btn-start-call').addEventListener('click', async () => {
-            document.getElementById('call-modal').classList.remove('hidden');
+            document.getElementById('call-panel').classList.remove('hidden');
             document.getElementById('call-status').textContent = "Calling " + currentChatUser.username + "...";
             document.getElementById('btn-answer-call').classList.add('hidden');
+            
             await setupWebcam();
+            
             const callDoc = doc(collection(db, 'calls'));
             activeCallDocId = callDoc.id;
             const offerCandidates = collection(callDoc, 'offerCandidates');
             const answerCandidates = collection(callDoc, 'answerCandidates');
+            
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
+            
             const offerDescription = await pc.createOffer();
             await pc.setLocalDescription(offerDescription);
+            
             await setDoc(callDoc, { offer: { sdp: offerDescription.sdp, type: offerDescription.type }, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
+            
             activeCallUnsubscribe = onSnapshot(callDoc, (snapshot) => {
                 const data = snapshot.data();
                 if (!pc.currentRemoteDescription && data?.answer) { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('call-status').textContent = "In Call"; }
@@ -730,11 +794,14 @@
                     const data = change.doc.data();
                     if (change.type === 'added' && data.receiverId === currentUser.uid && data.status === 'ringing') {
                         activeCallDocId = change.doc.id;
-                        document.getElementById('call-modal').classList.remove('hidden');
-                        document.getElementById('call-status').textContent = "Incoming Call...";
-                        document.getElementById('btn-answer-call').classList.remove('hidden');
                         
-                        // Push Notification for Call
+                        showToast("Incoming Video Call", "Tap to answer", () => {
+                            openChat(allUsersMap[data.callerId]);
+                            document.getElementById('call-panel').classList.remove('hidden');
+                            document.getElementById('call-status').textContent = "Incoming Call...";
+                            document.getElementById('btn-answer-call').classList.remove('hidden');
+                        });
+                        
                         if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                             fetch(VERCEL_API_URL, {
                                 method: 'POST',
@@ -756,15 +823,21 @@
         document.getElementById('btn-answer-call').addEventListener('click', async () => {
             document.getElementById('btn-answer-call').classList.add('hidden');
             document.getElementById('call-status').textContent = "Connecting...";
+            
             await setupWebcam();
+            
             const callDoc = doc(db, 'calls', activeCallDocId);
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
+            
             const callData = (await getDoc(callDoc)).data();
             await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            
             const answerDescription = await pc.createAnswer();
             await pc.setLocalDescription(answerDescription);
+            
             await updateDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'connected' });
             document.getElementById('call-status').textContent = "In Call";
+            
             onSnapshot(collection(callDoc, 'offerCandidates'), (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
         });
 
@@ -774,7 +847,8 @@
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
             if (activeCallUnsubscribe) activeCallUnsubscribe();
-            document.getElementById('call-modal').classList.add('hidden');
+            
+            document.getElementById('call-panel').classList.add('hidden');
             document.getElementById('local-video').srcObject = null;
             document.getElementById('remote-video').srcObject = null;
             activeCallDocId = null;
