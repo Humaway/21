@@ -235,7 +235,7 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
-        const firebaseConfig = {
+       const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -257,12 +257,23 @@
         let currentChatId = null;
         
         let unsubscribeChat = null;
-        let unsubscribeMetaRealtime = null; // New listener for real-time read receipts
+        let unsubscribeMetaRealtime = null;
         let unsubscribeCallListener = null;
         let unreadListeners = []; 
 
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
+
+        // --- NEW: REGISTER THE SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
 
         // --- IN-APP TOAST ENGINE ---
         function showToast(title, body, onClickCallback) {
@@ -277,14 +288,7 @@
             });
 
             container.appendChild(toast);
-
-            // Auto remove after 4 seconds
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.classList.add('fade-out');
-                    setTimeout(() => toast.remove(), 300);
-                }
-            }, 4000);
+            setTimeout(() => { if (toast.parentNode) { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); } }, 4000);
         }
 
         window.setTheme = function(themeName) {
@@ -318,6 +322,12 @@
                 currentUser = user;
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
+                
+                // Request Permission immediately on login
+                if ("Notification" in window && Notification.permission !== "granted") {
+                    Notification.requestPermission();
+                }
+
                 loadUsers();
                 listenForIncomingCalls();
             } else {
@@ -359,7 +369,7 @@
         function getAvatarHTML(userData) { return userData?.avatar ? `<img src="${userData.avatar}">` : (userData?.username?.charAt(0).toUpperCase() || '?'); }
         function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
 
-        // --- LOAD USERS & SYSTEM NOTIFICATIONS ---
+        // --- LOAD USERS & NEW SYSTEM NOTIFICATIONS ---
         function loadUsers() {
             onSnapshot(collection(db, 'users'), (snapshot) => {
                 const userList = document.getElementById('user-list');
@@ -392,14 +402,23 @@
                             const dot = document.getElementById(`dot-${userData.uid}`);
                             const currentlyUnread = metaData && metaData.unreadBy === currentUser.uid;
                             
-                            // Visual Dot
                             if (dot) dot.style.display = currentlyUnread ? 'block' : 'none';
                             
-                            // In-App Toast Notification (Replaces the broken browser notification)
+                            // --- NEW: THE ANDROID NOTIFICATION FIX ---
                             if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) {
-                                showToast(`New Message from ${userData.username}`, "Tap to view", () => {
-                                    openChat(userData);
-                                });
+                                // 1. Show the in-app toast just in case they are looking at the screen
+                                showToast(`New Message`, `From ${userData.username}`, () => openChat(userData));
+
+                                // 2. Trigger the Android OS Notification using the Service Worker
+                                if ("Notification" in window && Notification.permission === "granted") {
+                                    navigator.serviceWorker.ready.then(function(registration) {
+                                        registration.showNotification(`New Message from ${userData.username}`, {
+                                            body: "Tap to open chat",
+                                            icon: userData.avatar || null,
+                                            vibrate: [200, 100, 200] // Makes the phone buzz!
+                                        });
+                                    });
+                                }
                             }
                             previousUnreadState = currentlyUnread;
                         });
@@ -423,9 +442,7 @@
             document.getElementById('btn-start-call').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
             
-            // Mark as read immediately
             setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }, { merge: true });
-
             loadChatMessages();
         }
 
@@ -446,15 +463,12 @@
             const pinnedBar = document.getElementById('pinned-bar');
             const pinnedContent = document.getElementById('pinned-content');
             
-            // Clean up previous listeners
             if (unsubscribeChat) unsubscribeChat();
             if (unsubscribeMetaRealtime) unsubscribeMetaRealtime();
 
-            // Track state for the Read Receipt UI
             let isMyLastMessage = false;
             let hasFriendRead = false;
 
-            // Helper function to draw the Read Receipt at the bottom
             const updateReadReceiptUI = () => {
                 let receiptEl = document.getElementById('dynamic-read-receipt');
                 if (!receiptEl) {
@@ -464,7 +478,6 @@
                     container.appendChild(receiptEl);
                 }
                 
-                // Only show it if I sent the last message AND my friend opened the chat
                 if (isMyLastMessage && hasFriendRead) {
                     receiptEl.textContent = 'Read';
                     receiptEl.style.display = 'block';
@@ -473,14 +486,12 @@
                 }
             };
 
-            // 1. Real-time listener for friend reading the message
             unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                 const metaData = metaSnap.data();
                 hasFriendRead = metaData && metaData.unreadBy === null;
                 updateReadReceiptUI();
             });
 
-            // 2. Real-time listener for the actual messages
             const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
             unsubscribeChat = onSnapshot(q, (snapshot) => {
                 container.innerHTML = ''; 
@@ -543,13 +554,8 @@
                 });
 
                 pinnedBar.style.display = hasPins ? 'block' : 'none';
-
-                // Check if the very last message in the chat belongs to me
                 isMyLastMessage = lastMessageData && lastMessageData.senderId === currentUser.uid;
-                
-                // Re-draw the read receipt at the bottom
                 updateReadReceiptUI();
-
                 container.scrollTop = container.scrollHeight;
             });
         }
@@ -611,7 +617,6 @@
             }
         });
 
-        // --- WEBRTC CALLING ---
         async function setupWebcam() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             remoteStream = new MediaStream();
@@ -652,7 +657,16 @@
                         document.getElementById('call-modal').classList.remove('hidden');
                         document.getElementById('call-status').textContent = "Incoming Call...";
                         document.getElementById('btn-answer-call').classList.remove('hidden');
-                        showToast("Incoming Video Call", "Tap Answer in the modal to connect.");
+                        
+                        // NEW: Android OS Call Notification
+                        if ("Notification" in window && Notification.permission === "granted") {
+                            navigator.serviceWorker.ready.then(function(registration) {
+                                registration.showNotification("Incoming Video Call", {
+                                    body: "Tap to answer",
+                                    vibrate: [500, 250, 500, 250, 500] 
+                                });
+                            });
+                        }
                     }
                     if (change.type === 'modified' && data.status === 'ended') endCall();
                 });
