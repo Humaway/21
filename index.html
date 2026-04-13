@@ -250,7 +250,7 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
-        const firebaseConfig = {
+       const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -347,4 +347,313 @@
                     canvas.width = width; canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     if (currentUser) {
-                        await setDoc(doc(db, "users", currentUser.uid), { avatar: canvas.toDataURL('image/jpeg', 0.8) }, { merge
+                        await setDoc(doc(db, "users", currentUser.uid), { avatar: canvas.toDataURL('image/jpeg', 0.8) }, { merge: true });
+                        alert("Avatar updated!");
+                    }
+                }
+            }
+        });
+
+        function getAvatarHTML(userData) { return userData?.avatar ? `<img src="${userData.avatar}">` : (userData?.username?.charAt(0).toUpperCase() || '?'); }
+        function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
+
+        // --- LOAD USERS & SYSTEM NOTIFICATIONS ---
+        function loadUsers() {
+            onSnapshot(collection(db, 'users'), (snapshot) => {
+                const userList = document.getElementById('user-list');
+                userList.innerHTML = ''; 
+                unreadListeners.forEach(unsub => unsub());
+                unreadListeners = [];
+
+                snapshot.forEach((docSnap) => {
+                    const userData = docSnap.data();
+                    allUsersMap[userData.uid] = userData;
+                    
+                    if (userData.uid !== currentUser.uid) {
+                        const userDiv = document.createElement('div');
+                        userDiv.classList.add('user-item');
+                        userDiv.id = `user-row-${userData.uid}`;
+                        
+                        userDiv.innerHTML = `
+                            <div class="avatar-frame">${getAvatarHTML(userData)}</div> 
+                            <span>${userData.username}</span>
+                            <div class="unread-dot" id="dot-${userData.uid}"></div>
+                        `;
+                        userDiv.addEventListener('click', () => openChat(userData));
+                        userList.appendChild(userDiv);
+
+                        const chatId = generateChatId(currentUser.uid, userData.uid);
+                        let previousUnreadState = false; 
+
+                        const unsub = onSnapshot(doc(db, 'chats_meta', chatId), (metaSnap) => {
+                            const metaData = metaSnap.data();
+                            const dot = document.getElementById(`dot-${userData.uid}`);
+                            const currentlyUnread = metaData && metaData.unreadBy === currentUser.uid;
+                            
+                            // Visual Dot
+                            if (dot) dot.style.display = currentlyUnread ? 'block' : 'none';
+                            
+                            // System Push Notification
+                            if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) {
+                                if ("Notification" in window && Notification.permission === "granted") {
+                                    new Notification("New Message", {
+                                        body: `You have a new message from ${userData.username}`,
+                                        icon: userData.avatar || ''
+                                    });
+                                }
+                            }
+                            previousUnreadState = currentlyUnread;
+                        });
+                        unreadListeners.push(unsub);
+
+                    } else {
+                        document.getElementById('my-username').textContent = userData.username;
+                        document.getElementById('my-avatar').innerHTML = getAvatarHTML(userData);
+                    }
+                });
+            });
+        }
+
+        document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
+
+        function openChat(targetUser) {
+            currentChatUser = targetUser;
+            currentChatId = generateChatId(currentUser.uid, targetUser.uid);
+            document.getElementById('chat-title').textContent = targetUser.username;
+            document.getElementById('input-area').classList.remove('hidden');
+            document.getElementById('btn-start-call').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('chat-active');
+            
+            setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }, { merge: true });
+            loadChatMessages();
+        }
+
+        window.editMessage = async function(msgId, oldText) {
+            const newText = prompt("Edit your message:", oldText);
+            if (newText !== null && newText.trim() !== "") {
+                const newCipher = CryptoJS.AES.encrypt(newText.trim(), GLOBAL_OBFUSCATION_KEY).toString();
+                await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { ciphertext: newCipher, isEdited: true });
+            }
+        };
+
+        window.togglePin = async function(msgId, currentState) {
+            await updateDoc(doc(db, 'chats', currentChatId, 'messages', msgId), { isPinned: !currentState });
+        };
+
+        function loadChatMessages() {
+            const container = document.getElementById('messages-container');
+            const pinnedBar = document.getElementById('pinned-bar');
+            const pinnedContent = document.getElementById('pinned-content');
+            
+            const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
+            if (unsubscribeChat) unsubscribeChat();
+
+            unsubscribeChat = onSnapshot(q, async (snapshot) => {
+                container.innerHTML = ''; 
+                pinnedContent.innerHTML = '';
+                let hasPins = false;
+                let lastMessageData = null;
+
+                const metaSnap = await getDoc(doc(db, 'chats_meta', currentChatId));
+                const metaData = metaSnap.data();
+                const friendHasRead = metaData && metaData.unreadBy === null;
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const msgId = docSnap.id;
+                    lastMessageData = data;
+
+                    let decryptedText = "[Error]";
+                    try { decryptedText = CryptoJS.AES.decrypt(data.ciphertext, GLOBAL_OBFUSCATION_KEY).toString(CryptoJS.enc.Utf8); } catch (e) {}
+                    
+                    let timeString = data.createdAt ? data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
+                    const senderProfile = allUsersMap[data.senderId];
+                    const isMe = data.senderId === currentUser.uid;
+
+                    let contentHTML = '';
+                    if (data.type === 'image') {
+                        contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image">`;
+                    } else {
+                        contentHTML = `<div class="msg-text">${decryptedText}</div>`;
+                    }
+
+                    let actionsHTML = `<div class="msg-actions">
+                        <button class="msg-action-btn" onclick="togglePin('${msgId}', ${data.isPinned || false})">${data.isPinned ? 'Unpin' : 'Pin'}</button>`;
+                    if (isMe && data.type !== 'image') {
+                        const safeText = decryptedText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        actionsHTML += `<button class="msg-action-btn" onclick="editMessage('${msgId}', '${safeText}')">Edit</button>`;
+                    }
+                    actionsHTML += `</div>`;
+
+                    const editedTag = data.isEdited ? `<span class="msg-edited">(edited)</span>` : '';
+
+                    const msgHTML = `
+                        ${actionsHTML}
+                        <div class="avatar-frame">${getAvatarHTML(senderProfile)}</div>
+                        <div class="msg-content">
+                            <div class="msg-header">
+                                <span class="msg-username" style="color: ${isMe ? 'var(--accent)' : 'var(--text-header)'}">${senderProfile?.username || 'Unknown'}</span>
+                                <span class="msg-time">Today at ${timeString} ${editedTag}</span>
+                            </div>
+                            ${contentHTML}
+                        </div>`;
+
+                    const msgDiv = document.createElement('div');
+                    msgDiv.classList.add('message');
+                    msgDiv.innerHTML = msgHTML;
+                    container.appendChild(msgDiv);
+
+                    if (data.isPinned) {
+                        hasPins = true;
+                        const pinDiv = document.createElement('div');
+                        pinDiv.classList.add('pinned-msg');
+                        pinDiv.innerHTML = `<strong>${senderProfile?.username}:</strong> ${data.type === 'image' ? '[Image]' : decryptedText}`;
+                        pinnedContent.appendChild(pinDiv);
+                    }
+                });
+
+                pinnedBar.style.display = hasPins ? 'block' : 'none';
+
+                if (lastMessageData && lastMessageData.senderId === currentUser.uid && friendHasRead) {
+                    const readDiv = document.createElement('div');
+                    readDiv.classList.add('read-receipt');
+                    readDiv.textContent = 'Read';
+                    container.appendChild(readDiv);
+                }
+
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        document.getElementById('message-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (text && currentChatId) {
+                try {
+                    await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+                        type: 'text',
+                        ciphertext: CryptoJS.AES.encrypt(text, GLOBAL_OBFUSCATION_KEY).toString(),
+                        senderId: currentUser.uid,
+                        createdAt: serverTimestamp(),
+                        isPinned: false,
+                        isEdited: false
+                    });
+                    
+                    await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
+                    input.value = '';
+                } catch (error) { console.error("Error sending:", error); }
+            }
+        });
+
+        document.getElementById('chat-image-upload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentChatId) return;
+            e.target.value = ''; 
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width, height = img.height;
+                    const MAX_SIZE = 800; 
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    
+                    const base64Img = canvas.toDataURL('image/jpeg', 0.6); 
+                    
+                    try {
+                        await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+                            type: 'image',
+                            ciphertext: CryptoJS.AES.encrypt(base64Img, GLOBAL_OBFUSCATION_KEY).toString(),
+                            senderId: currentUser.uid,
+                            createdAt: serverTimestamp(),
+                            isPinned: false
+                        });
+                        
+                        await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid }, { merge: true });
+                    } catch (error) { console.error("Error sending image:", error); }
+                }
+            }
+        });
+
+        async function setupWebcam() {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            remoteStream = new MediaStream();
+            document.getElementById('local-video').srcObject = localStream;
+            document.getElementById('remote-video').srcObject = remoteStream;
+            pc = new RTCPeerConnection(servers);
+            localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+            pc.ontrack = (event) => event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
+        }
+
+        document.getElementById('btn-start-call').addEventListener('click', async () => {
+            document.getElementById('call-modal').classList.remove('hidden');
+            document.getElementById('call-status').textContent = "Calling " + currentChatUser.username + "...";
+            document.getElementById('btn-answer-call').classList.add('hidden');
+            await setupWebcam();
+            const callDoc = doc(collection(db, 'calls'));
+            activeCallDocId = callDoc.id;
+            const offerCandidates = collection(callDoc, 'offerCandidates');
+            const answerCandidates = collection(callDoc, 'answerCandidates');
+            pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
+            const offerDescription = await pc.createOffer();
+            await pc.setLocalDescription(offerDescription);
+            await setDoc(callDoc, { offer: { sdp: offerDescription.sdp, type: offerDescription.type }, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
+            activeCallUnsubscribe = onSnapshot(callDoc, (snapshot) => {
+                const data = snapshot.data();
+                if (!pc.currentRemoteDescription && data?.answer) { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('call-status').textContent = "In Call"; }
+                if (data?.status === 'ended') endCall();
+            });
+            onSnapshot(answerCandidates, (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
+        });
+
+        function listenForIncomingCalls() {
+            unsubscribeCallListener = onSnapshot(collection(db, 'calls'), (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    if (change.type === 'added' && data.receiverId === currentUser.uid && data.status === 'ringing') {
+                        activeCallDocId = change.doc.id;
+                        document.getElementById('call-modal').classList.remove('hidden');
+                        document.getElementById('call-status').textContent = "Incoming Call...";
+                        document.getElementById('btn-answer-call').classList.remove('hidden');
+                    }
+                    if (change.type === 'modified' && data.status === 'ended') endCall();
+                });
+            });
+        }
+
+        document.getElementById('btn-answer-call').addEventListener('click', async () => {
+            document.getElementById('btn-answer-call').classList.add('hidden');
+            document.getElementById('call-status').textContent = "Connecting...";
+            await setupWebcam();
+            const callDoc = doc(db, 'calls', activeCallDocId);
+            pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
+            const callData = (await getDoc(callDoc)).data();
+            await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            const answerDescription = await pc.createAnswer();
+            await pc.setLocalDescription(answerDescription);
+            await updateDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'connected' });
+            document.getElementById('call-status').textContent = "In Call";
+            onSnapshot(collection(callDoc, 'offerCandidates'), (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
+        });
+
+        document.getElementById('btn-end-call').addEventListener('click', () => { if (activeCallDocId) updateDoc(doc(db, 'calls', activeCallDocId), { status: 'ended' }); endCall(); });
+        function endCall() {
+            if (pc) { pc.close(); pc = null; }
+            if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+            if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
+            if (activeCallUnsubscribe) activeCallUnsubscribe();
+            document.getElementById('call-modal').classList.add('hidden');
+            document.getElementById('local-video').srcObject = null;
+            document.getElementById('remote-video').srcObject = null;
+            activeCallDocId = null;
+        }
+    </script>
+</body>
+</html>
