@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord-Style Chat</title>
-    
+    <title>LMessage</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <style>
         :root {
-            /* Discord Color Palette */
+            /* Default Discord Dark Palette */
             --bg-primary: #36393f;
             --bg-secondary: #2f3136;
             --bg-tertiary: #202225;
@@ -22,14 +21,53 @@
             --divider: #42464D;
         }
 
+        /* --- Custom Themes --- */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f2f3f5;
+            --bg-tertiary: #e3e5e8;
+            --bg-input: #ebedef;
+            --text-normal: #2e3338;
+            --text-muted: #747f8d;
+            --text-header: #060607;
+            --accent: #5865F2;
+            --divider: #e3e5e8;
+        }
+        
+        [data-theme="hacker"] {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #000000;
+            --bg-tertiary: #111111;
+            --bg-input: #1a1a1a;
+            --text-normal: #00ff00;
+            --text-muted: #008800;
+            --text-header: #00ff00;
+            --accent: #00cc00;
+            --divider: #222222;
+        }
+
+        [data-theme="sunset"] {
+            --bg-primary: #2d1b2e;
+            --bg-secondary: #1f1320;
+            --bg-tertiary: #3a233b;
+            --bg-input: #4a2d4b;
+            --text-normal: #fcd5ce;
+            --text-muted: #d8b4e2;
+            --text-header: #ffb5a7;
+            --accent: #ff9f1c;
+            --divider: #5a375c;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-primary); color: var(--text-normal); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-primary); color: var(--text-normal); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
         .hidden { display: none !important; }
 
-        /* --- Auth Screen --- */
-        #auth-screen { background: var(--bg-secondary); padding: 40px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        #auth-screen h2 { color: var(--text-header); text-align: center; margin-bottom: 20px; }
-        #auth-form { display: flex; flex-direction: column; gap: 15px; }
+        /* --- Modals & Auth --- */
+        .modal { background: var(--bg-secondary); padding: 40px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; position: absolute; }
+        .modal h2 { color: var(--text-header); text-align: center; margin-bottom: 20px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        
+        .form-col { display: flex; flex-direction: column; gap: 15px; }
         input { background: var(--bg-tertiary); border: 1px solid var(--bg-tertiary); color: var(--text-normal); padding: 12px; border-radius: 4px; outline: none; font-size: 1rem; }
         input:focus { border-color: var(--accent); }
         button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
@@ -38,19 +76,34 @@
         .btn-secondary:hover { background: #4f545c; }
         .error { color: #ed4245; font-size: 0.85rem; text-align: center; }
 
-        /* --- Main App Layout --- */
-        #app-container { display: flex; width: 100vw; height: 100vh; }
+        /* --- Settings Panel --- */
+        .theme-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .theme-btn { padding: 8px; font-size: 0.9rem; background: var(--bg-input); }
+        .setting-group { margin-bottom: 20px; border-bottom: 1px solid var(--divider); padding-bottom: 15px; }
+        .setting-group label { display: block; color: var(--text-header); font-weight: bold; margin-bottom: 10px; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: transparent; color: var(--text-muted); font-size: 1.2rem; padding: 0; width: auto; }
         
-        /* Sidebar (User List) */
-        #sidebar { width: 280px; background: var(--bg-secondary); display: flex; flex-direction: column; flex-shrink: 0; }
+        /* Avatars */
+        .avatar-frame { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 12px; background: var(--accent); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; overflow: hidden; }
+        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- Main App Layout --- */
+        #app-container { display: flex; width: 100vw; height: 100vh; position: relative; }
+        
+        /* Sidebar */
+        #sidebar { width: 280px; background: var(--bg-secondary); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--divider); }
         .sidebar-header { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bg-tertiary); box-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 600; color: var(--text-header); }
-        .logout-btn { background: transparent; color: var(--text-muted); padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; }
-        .logout-btn:hover { background: var(--bg-input); color: var(--text-normal); }
+        .icon-btn { background: transparent; color: var(--text-muted); padding: 4px; font-size: 1.2rem; border-radius: 4px; cursor: pointer; }
+        .icon-btn:hover { color: var(--text-normal); }
         
         #user-list { flex: 1; overflow-y: auto; padding: 8px; }
         .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s, color 0.1s; }
         .user-item:hover { background: var(--bg-input); color: var(--text-normal); }
-        .avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); margin-right: 12px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px;}
+
+        /* Current User Bar (Bottom Left) */
+        #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+        .user-details { display: flex; flex-direction: column; flex: 1; }
+        .user-details strong { color: var(--text-header); font-size: 0.9rem; }
 
         /* Chat Area */
         #chat-area { flex: 1; background: var(--bg-primary); display: flex; flex-direction: column; min-width: 0; }
@@ -70,44 +123,75 @@
         #input-area { padding: 0 16px 24px 16px; }
         #message-form { display: flex; background: var(--bg-input); border-radius: 8px; padding: 10px 16px; align-items: center; }
         #message-form input { flex: 1; background: transparent; border: none; padding: 0; margin-right: 10px; color: var(--text-normal); font-size: 1rem; }
-        #message-form input:focus { border: none; }
-        #message-form button { display: none; } /* Hide physical send button, rely on 'Enter' like Discord */
+        #message-form button { display: none; }
 
-        /* --- Mobile Responsiveness --- */
+        /* Mobile */
         @media (max-width: 768px) {
             #sidebar { width: 100%; }
             #chat-area { display: none; width: 100%; }
-            
-            /* When a chat is active on mobile */
             #app-container.chat-active #sidebar { display: none; }
             #app-container.chat-active #chat-area { display: flex; }
-            
             #mobile-back-btn { display: block; }
         }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen">
-        <h2>Discord Clone</h2>
-        <form id="auth-form">
-            <input type="text" id="auth-username" placeholder="Username (for Sign Up)">
-            <input type="email" id="auth-email" placeholder="Email" required>
-            <input type="password" id="auth-password" placeholder="Password" required>
-            <button type="submit" id="btn-login">Log In</button>
-            <button type="button" id="btn-signup" class="btn-secondary">Sign Up</button>
-            <p id="auth-error" class="error"></p>
-        </form>
+    <div id="auth-screen" class="modal-overlay">
+        <div class="modal">
+            <h2>Log In</h2>
+            <form id="auth-form" class="form-col">
+                <input type="text" id="auth-username" placeholder="Username (for Sign Up)">
+                <input type="email" id="auth-email" placeholder="Email" required>
+                <input type="password" id="auth-password" placeholder="Password" required>
+                <button type="submit" id="btn-login">Log In</button>
+                <button type="button" id="btn-signup" class="btn-secondary">Sign Up</button>
+                <p id="auth-error" class="error"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <button id="close-settings" class="close-btn">✖</button>
+            <h2>User Settings</h2>
+            
+            <div class="setting-group">
+                <label>Profile Picture</label>
+                <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Image will be compressed and saved automatically.</p>
+            </div>
+
+            <div class="setting-group">
+                <label>App Theme</label>
+                <div class="theme-buttons">
+                    <button class="theme-btn" onclick="setTheme('dark')">Discord Dark</button>
+                    <button class="theme-btn" onclick="setTheme('light')">Light Mode</button>
+                    <button class="theme-btn" onclick="setTheme('hacker')">Hacker</button>
+                    <button class="theme-btn" onclick="setTheme('sunset')">Sunset</button>
+                </div>
+            </div>
+
+            <button id="btn-logout" class="btn-secondary" style="width: 100%; margin-top: 10px;">Log Out</button>
+        </div>
     </div>
 
     <div id="app-container" class="hidden">
         
         <div id="sidebar">
             <div class="sidebar-header">
-                <span id="current-user-name">Direct Messages</span>
-                <button id="btn-logout" class="logout-btn">Log Out</button>
+                <span>Direct Messages</span>
             </div>
+            
             <div id="user-list"></div>
+
+            <div id="current-user-bar">
+                <div id="my-avatar" class="avatar-frame">?</div>
+                <div class="user-details">
+                    <strong id="my-username">Loading...</strong>
+                </div>
+                <button id="btn-settings" class="icon-btn">⚙️</button>
+            </div>
         </div>
 
         <div id="chat-area">
@@ -124,12 +208,11 @@
                 </form>
             </div>
         </div>
-
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
@@ -147,34 +230,85 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- GLOBAL ENCRYPTION KEY ---
-        // This is the secret key encoded into everyone's HTML file. 
-        // It hides the data from the Firebase console, but automatically decodes for anyone using the app.
         const GLOBAL_OBFUSCATION_KEY = "MySuperSecretAppPassword123!";
 
-        // State
         let currentUser = null;
+        let currentUserProfile = null; // Store our own full profile (with avatar)
+        let allUsersMap = {}; // Cache everyone's profile to easily grab their avatars for chats
+        
         let currentChatUser = null;
         let currentChatId = null;
         let unsubscribeChat = null;
 
-        // DOM Elements
-        const authScreen = document.getElementById('auth-screen');
-        const appContainer = document.getElementById('app-container');
-        const authError = document.getElementById('auth-error');
+        // --- THEME LOGIC ---
+        // Load theme from local storage instantly
+        window.setTheme = function(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('chat_theme', themeName);
+        }
+        const savedTheme = localStorage.getItem('chat_theme') || 'dark';
+        setTheme(savedTheme);
+
+        // --- UI TOGGLES ---
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        });
+        document.getElementById('close-settings').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.add('hidden');
+        });
+
+        // --- IMAGE COMPRESSION & UPLOAD ---
+        // This takes a large image, draws it to a tiny invisible canvas, and extracts the code.
+        document.getElementById('avatar-upload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = async () => {
+                    // Create a tiny canvas to resize the image
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 100; // 100x100 pixels max
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress to JPEG and convert to Base64 Text
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+                    // Save directly to Firestore profile
+                    if (currentUser) {
+                        await setDoc(doc(db, "users", currentUser.uid), { avatar: compressedBase64 }, { merge: true });
+                        alert("Profile picture updated!");
+                    }
+                }
+            }
+        });
 
         // --- AUTH ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                authScreen.classList.add('hidden');
-                appContainer.classList.remove('hidden');
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
                 loadUsers();
             } else {
                 currentUser = null;
-                appContainer.classList.add('hidden');
-                authScreen.classList.remove('hidden');
-                appContainer.classList.remove('chat-active'); // Reset mobile state
+                document.getElementById('app-container').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('settings-modal').classList.add('hidden');
             }
         });
 
@@ -182,28 +316,34 @@
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const username = document.getElementById('auth-username').value;
-            if (!username) return authError.textContent = "Username required for Sign Up";
+            if (!username) return document.getElementById('auth-error').textContent = "Username required for Sign Up";
 
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", cred.user.uid), {
-                    uid: cred.user.uid, email: email, username: username
-                });
-                authError.textContent = "";
-            } catch (error) { authError.textContent = error.message; }
+                await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username });
+            } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            try {
-                await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value);
-                authError.textContent = "";
-            } catch (error) { authError.textContent = error.message; }
+            try { await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value); } 
+            catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-        // --- UI LOGIC ---
+
+        // --- HELPERS ---
+        // Generates the HTML for the avatar circle (Image if exists, initial if not)
+        function getAvatarHTML(userData) {
+            if (userData.avatar) {
+                return `<img src="${userData.avatar}" alt="avatar">`;
+            } else {
+                return userData.username.charAt(0).toUpperCase();
+            }
+        }
+
+        // --- USER LOGIC ---
         function loadUsers() {
             onSnapshot(collection(db, 'users'), (snapshot) => {
                 const userList = document.getElementById('user-list');
@@ -211,28 +351,31 @@
                 
                 snapshot.forEach((doc) => {
                     const userData = doc.data();
+                    allUsersMap[userData.uid] = userData; // Cache for chat display
+
                     if (userData.uid !== currentUser.uid) {
                         const userDiv = document.createElement('div');
                         userDiv.classList.add('user-item');
                         
-                        // Create a colored avatar based on the first letter of their name
-                        const initial = userData.username.charAt(0).toUpperCase();
-                        userDiv.innerHTML = `<div class="avatar-placeholder">${initial}</div> <span>${userData.username}</span>`;
-                        
+                        userDiv.innerHTML = `
+                            <div class="avatar-frame">${getAvatarHTML(userData)}</div> 
+                            <span>${userData.username}</span>
+                        `;
                         userDiv.addEventListener('click', () => openChat(userData));
                         userList.appendChild(userDiv);
                     } else {
-                        document.getElementById('current-user-name').textContent = userData.username;
+                        // Update our bottom-left profile bar
+                        currentUserProfile = userData;
+                        document.getElementById('my-username').textContent = userData.username;
+                        document.getElementById('my-avatar').innerHTML = getAvatarHTML(userData);
                     }
                 });
             });
         }
 
-        // Mobile back button
+        // --- CHAT LOGIC ---
         document.getElementById('mobile-back-btn').addEventListener('click', () => {
-            appContainer.classList.remove('chat-active');
-            if (unsubscribeChat) unsubscribeChat();
-            currentChatId = null;
+            document.getElementById('app-container').classList.remove('chat-active');
         });
 
         function generateChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
@@ -242,11 +385,8 @@
             currentChatId = generateChatId(currentUser.uid, targetUser.uid);
             
             document.getElementById('chat-title').textContent = targetUser.username;
-            document.getElementById('message-input').placeholder = `Message @${targetUser.username}`;
             document.getElementById('input-area').classList.remove('hidden');
-            
-            // Trigger mobile responsive view
-            appContainer.classList.add('chat-active');
+            document.getElementById('app-container').classList.add('chat-active');
             
             loadChatMessages();
         }
@@ -265,32 +405,24 @@
                     let decryptedText = "[Error loading message]";
                     
                     try {
-                        // DECRYPT THE MESSAGE USING THE GLOBAL KEY
                         const bytes = CryptoJS.AES.decrypt(data.ciphertext, GLOBAL_OBFUSCATION_KEY);
                         decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-                    } catch (e) {
-                        console.error("Decryption failed");
-                    }
+                    } catch (e) { console.error("Decryption failed"); }
 
-                    // Format Time (e.g. "10:27 AM")
                     let timeString = "Sending...";
-                    if (data.createdAt) {
-                        timeString = data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    }
+                    if (data.createdAt) timeString = data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                    // Determine sender name and initial for Avatar
+                    // Find who sent it and get their avatar from our cache
+                    const senderProfile = allUsersMap[data.senderId];
                     const isMe = data.senderId === currentUser.uid;
-                    const senderName = isMe ? document.getElementById('current-user-name').textContent : currentChatUser.username;
-                    const initial = senderName.charAt(0).toUpperCase();
 
-                    // Build Discord-style message HTML
                     const msgDiv = document.createElement('div');
                     msgDiv.classList.add('message');
                     msgDiv.innerHTML = `
-                        <div class="avatar-placeholder" style="background: ${isMe ? '#5865F2' : '#ed4245'}">${initial}</div>
+                        <div class="avatar-frame">${getAvatarHTML(senderProfile)}</div>
                         <div class="msg-content">
                             <div class="msg-header">
-                                <span class="msg-username">${senderName}</span>
+                                <span class="msg-username" style="color: ${isMe ? 'var(--accent)' : 'var(--text-header)'}">${senderProfile.username}</span>
                                 <span class="msg-time">Today at ${timeString}</span>
                             </div>
                             <div class="msg-text">${decryptedText}</div>
@@ -302,7 +434,6 @@
             });
         }
 
-        // --- SEND MESSAGE ---
         document.getElementById('message-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const input = document.getElementById('message-input');
@@ -310,9 +441,7 @@
             
             if (text && currentChatId) {
                 try {
-                    // ENCRYPT THE MESSAGE WITH THE GLOBAL KEY BEFORE SENDING
                     const ciphertext = CryptoJS.AES.encrypt(text, GLOBAL_OBFUSCATION_KEY).toString();
-
                     await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
                         ciphertext: ciphertext,
                         senderId: currentUser.uid,
