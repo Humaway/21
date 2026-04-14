@@ -109,15 +109,16 @@
         #call-panel.fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; border-radius: 0; }
         .call-panel-header { display: flex; justify-content: space-between; align-items: center; }
         
-        .video-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: 100%; flex: 1; overflow-y: auto; padding: 10px; }
-        
-        /* Video Wrappers */
-        .video-wrapper { position: relative; flex: 1 1 300px; max-width: 45%; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center; }
+        /* DYNAMIC GRID: Grows and wraps perfectly based on peer count */
+        .video-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; width: 100%; flex: 1; overflow-y: auto; padding: 10px; }
+        .video-wrapper { position: relative; flex: 1 1 calc(33% - 20px); min-width: 250px; max-width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
         .video-wrapper video { width: 100%; height: 100%; object-fit: contain; }
-        .fullscreen .video-wrapper { max-width: 40vw; max-height: 40vh; }
-        
+        .fullscreen .video-wrapper { max-height: 45vh; } /* Prevents overflow when fullscreen */
+        #local-video { transform: scaleX(-1); }
+
         .video-name-badge { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; z-index: 2; pointer-events: none; display: flex; align-items: center; gap: 5px; }
-        .mic-muted-icon { color: #ed4245; display: none; }
+        .status-icon { display: none; }
+        .status-icon.muted { display: inline-block; color: #ed4245; }
 
         .call-controls { display: flex; gap: 10px; align-items: center; }
         .call-controls button { padding: 6px 12px; font-size: 0.85rem; }
@@ -178,7 +179,6 @@
             #app-container.chat-active #sidebar { display: none; }
             #app-container.chat-active #chat-area { display: flex; }
             #mobile-back-btn { display: block; }
-            .video-wrapper { max-width: 100%; }
         }
     </style>
 </head>
@@ -193,10 +193,7 @@
         </div>
     </div>
 
-    <div id="lightbox" onclick="closeLightbox()">
-        <img id="lightbox-img" src="" alt="Expanded View">
-    </div>
-
+    <div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src="" alt="Expanded View"></div>
     <div id="toast-container"></div>
 
     <div id="auth-screen" class="modal-overlay">
@@ -217,6 +214,7 @@
         <div class="modal">
             <button id="close-settings" class="close-btn">✖</button>
             <h2>User Settings</h2>
+            
             <div class="setting-group">
                 <label>Profile Picture</label>
                 <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
@@ -332,7 +330,7 @@
         // ==========================================
         // 1. CONFIGURATIONS
         // ==========================================
-       const firebaseConfig = {
+        const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -546,8 +544,8 @@
                 this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 document.getElementById('video-grid').innerHTML = `
                     <div class="video-wrapper" id="wrapper-local">
-                        <video id="local-video" autoplay playsinline muted style="transform: scaleX(-1);"></video>
-                        <div class="video-name-badge">You <span class="mic-muted-icon" id="local-mute-icon">🔇</span></div>
+                        <video id="local-video" autoplay playsinline muted></video>
+                        <div class="video-name-badge">You <span class="status-icon muted" id="local-mute-icon" style="display:none;">🔇</span><span class="status-icon muted" id="local-video-icon" style="display:none;">🚫</span></div>
                     </div>`;
                 document.getElementById('local-video').srcObject = this.localStream;
             },
@@ -560,9 +558,9 @@
                     const btn = document.getElementById('btn-toggle-mic');
                     const icon = document.getElementById('local-mute-icon');
                     if(track.enabled) {
-                        btn.textContent = '🎤 Mute'; btn.classList.remove('btn-danger'); icon.style.display = 'none'; this.broadcastMuteState(false);
+                        btn.textContent = '🎤 Mute'; btn.classList.remove('btn-danger'); icon.style.display = 'none'; this.broadcastState({audioMuted: false});
                     } else {
-                        btn.textContent = '🔇 Unmute'; btn.classList.add('btn-danger'); icon.style.display = 'inline-block'; this.broadcastMuteState(true);
+                        btn.textContent = '🔇 Unmute'; btn.classList.add('btn-danger'); icon.style.display = 'inline-block'; this.broadcastState({audioMuted: true});
                     }
                 }
             },
@@ -573,13 +571,17 @@
                 if(track) {
                     track.enabled = !track.enabled;
                     const btn = document.getElementById('btn-toggle-video');
-                    if(track.enabled) { btn.textContent = '📷 Stop Video'; btn.classList.remove('btn-danger'); } 
-                    else { btn.textContent = '🚫 Start Video'; btn.classList.add('btn-danger'); }
+                    const icon = document.getElementById('local-video-icon');
+                    if(track.enabled) { 
+                        btn.textContent = '📷 Stop Video'; btn.classList.remove('btn-danger'); icon.style.display = 'none'; this.broadcastState({videoMuted: false});
+                    } else { 
+                        btn.textContent = '🚫 Start Video'; btn.classList.add('btn-danger'); icon.style.display = 'inline-block'; this.broadcastState({videoMuted: true});
+                    }
                 }
             },
 
-            async broadcastMuteState(isMuted) {
-                if(this.chatId && currentUser) { await updateDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), { audioMuted: isMuted }).catch(e=>{}); }
+            async broadcastState(stateObj) {
+                if(this.chatId && currentUser) { await updateDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), stateObj).catch(e=>{}); }
             },
 
             async join(isInitiator = false) {
@@ -600,14 +602,14 @@
                 if (!currentChatUser.isGroup) { metaPayload.ringing = isInitiator ? currentChatUser.uid : null; }
                 await setDoc(doc(db, 'chats_meta', this.chatId), metaPayload, {merge:true});
 
-                await setDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), { joined: serverTimestamp(), audioMuted: false });
+                await setDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), { joined: serverTimestamp(), audioMuted: false, videoMuted: false });
 
                 const signalsRef = collection(db, `chats/${this.chatId}/signals`);
                 const q = query(signalsRef, where('to', '==', currentUser.uid));
                 this.unsubs.push(onSnapshot(q, snap => {
                     snap.docChanges().forEach(change => {
                         if (change.type === 'added') {
-                            this.handleSignal(change.doc.data(), change.doc.id);
+                            this.handleSignal(change.doc.data());
                             deleteDoc(doc(db, `chats/${this.chatId}/signals`, change.doc.id)).catch(e=>{}); 
                         }
                     });
@@ -619,12 +621,18 @@
                         if (change.type === 'added' && change.doc.id !== currentUser.uid) {
                             stopRingtone(); 
                             if (!currentChatUser.isGroup && !isInitiator) playPickupSound(); 
+                            
+                            // Initialize peer right away so it's ready for early ICE candidates
+                            this.createPeer(change.doc.id);
+
                             if (currentUser.uid > change.doc.id) { this.initiatePeer(change.doc.id); }
                         }
                         if (change.type === 'modified' && change.doc.id !== currentUser.uid) {
                             const data = change.doc.data();
-                            const icon = document.getElementById(`mute-icon-${change.doc.id}`);
-                            if(icon) icon.style.display = data.audioMuted ? 'inline-block' : 'none';
+                            const micIcon = document.getElementById(`mute-icon-${change.doc.id}`);
+                            const vidIcon = document.getElementById(`video-icon-${change.doc.id}`);
+                            if(micIcon) micIcon.style.display = data.audioMuted ? 'inline-block' : 'none';
+                            if(vidIcon) vidIcon.style.display = data.videoMuted ? 'inline-block' : 'none';
                         }
                         if (change.type === 'removed' && change.doc.id !== currentUser.uid) {
                             this.removePeer(change.doc.id);
@@ -645,7 +653,10 @@
                 const userName = allUsersMap[remoteUid]?.username || 'Unknown';
                 wrapper.innerHTML = `
                     <video id="video-${remoteUid}" autoplay playsinline></video>
-                    <div class="video-name-badge">${userName} <span class="mic-muted-icon" id="mute-icon-${remoteUid}">🔇</span></div>
+                    <div class="video-name-badge">${userName} 
+                        <span class="status-icon muted" id="mute-icon-${remoteUid}">🔇</span>
+                        <span class="status-icon muted" id="video-icon-${remoteUid}">🚫</span>
+                    </div>
                 `;
                 document.getElementById('video-grid').appendChild(wrapper);
                 document.getElementById(`video-${remoteUid}`).srcObject = remoteStream;
@@ -664,18 +675,20 @@
             async handleSignal(data) {
                 if (!this.chatId) return; 
                 const remoteUid = data.from;
+                
+                // RACE CONDITION FIX: Ensure peer exists before processing signal
+                let pc = this.peers[remoteUid];
+                if (!pc) pc = this.createPeer(remoteUid);
+
                 if (data.type === 'offer') {
-                    const pc = this.createPeer(remoteUid);
                     await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: data.sdp }));
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
                     await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'answer', sdp: answer.sdp });
                 } else if (data.type === 'answer') {
-                    const pc = this.peers[remoteUid];
-                    if (pc) await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+                    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
                 } else if (data.type === 'candidate') {
-                    const pc = this.peers[remoteUid];
-                    if (pc) await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e=>{});
                 }
             },
 
