@@ -51,6 +51,7 @@
         .form-col { display: flex; flex-direction: column; gap: 15px; }
         input { background: var(--bg-tertiary); border: 1px solid var(--bg-tertiary); color: var(--text-normal); padding: 12px; border-radius: 4px; outline: none; font-size: 1rem; width: 100%;}
         input:focus { border-color: var(--accent); }
+        input[type="color"] { padding: 2px; height: 40px; cursor: pointer; }
         button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
         button:hover { background: var(--accent-hover); }
         .btn-secondary { background: var(--bg-input); }
@@ -109,9 +110,14 @@
         .call-panel-header { display: flex; justify-content: space-between; align-items: center; }
         
         .video-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: 100%; flex: 1; overflow-y: auto; padding: 10px; }
-        .video-grid video { background: #0b0b0b; border-radius: 8px; flex: 1 1 300px; max-width: 45%; aspect-ratio: 16/9; object-fit: contain; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-        .fullscreen .video-grid video { max-width: 40vw; max-height: 40vh; }
-        #local-video { transform: scaleX(-1); }
+        
+        /* Video Wrappers */
+        .video-wrapper { position: relative; flex: 1 1 300px; max-width: 45%; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center; }
+        .video-wrapper video { width: 100%; height: 100%; object-fit: contain; }
+        .fullscreen .video-wrapper { max-width: 40vw; max-height: 40vh; }
+        
+        .video-name-badge { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; z-index: 2; pointer-events: none; display: flex; align-items: center; gap: 5px; }
+        .mic-muted-icon { color: #ed4245; display: none; }
 
         .call-controls { display: flex; gap: 10px; align-items: center; }
         .call-controls button { padding: 6px 12px; font-size: 0.85rem; }
@@ -172,7 +178,7 @@
             #app-container.chat-active #sidebar { display: none; }
             #app-container.chat-active #chat-area { display: flex; }
             #mobile-back-btn { display: block; }
-            .video-grid video { max-width: 100%; }
+            .video-wrapper { max-width: 100%; }
         }
     </style>
 </head>
@@ -211,7 +217,6 @@
         <div class="modal">
             <button id="close-settings" class="close-btn">✖</button>
             <h2>User Settings</h2>
-            
             <div class="setting-group">
                 <label>Profile Picture</label>
                 <input type="file" id="avatar-upload" accept="image/*" style="width: 100%;">
@@ -224,7 +229,6 @@
                 <label>Name Color</label>
                 <input type="color" id="settings-color-input" value="#ffffff">
             </div>
-            
             <div class="setting-group">
                 <label>Notifications</label>
                 <label style="font-weight: normal; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; cursor: pointer;">
@@ -232,7 +236,6 @@
                     Mute General Chat Notifications
                 </label>
             </div>
-
             <div class="setting-group">
                 <label>App Theme</label>
                 <div class="theme-buttons">
@@ -253,7 +256,6 @@
             <div class="sidebar-header">
                 <span>ANULChat Server</span>
             </div>
-            
             <div class="sidebar-category">Channels</div>
             <div id="channel-list" style="padding: 0 8px;">
                 <div class="user-item" onclick="openGroupChat()">
@@ -261,7 +263,6 @@
                     <span style="font-weight: 500; color: var(--text-normal);">General Chat</span>
                 </div>
             </div>
-
             <div class="sidebar-category" style="margin-top: 10px;">Direct Messages</div>
             <div id="user-list"></div>
             
@@ -281,8 +282,8 @@
                 <span id="chat-type-icon" style="color: var(--text-muted);">@</span>
                 <span id="chat-title">Select a user</span>
                 <div class="header-actions">
-                    <button id="btn-join-call" class="hidden" onclick="rtcManager.join()">📞 Join Call</button>
-                    <button id="btn-start-call" class="hidden">📞 Start Call</button>
+                    <button id="btn-join-call" class="hidden" onclick="rtcManager.join(false)">📞 Join Call</button>
+                    <button id="btn-start-call" class="hidden" onclick="rtcManager.join(true)">📞 Start Call</button>
                 </div>
             </div>
             
@@ -290,6 +291,8 @@
                 <div class="call-panel-header">
                     <span id="call-status" style="font-weight: bold; color: var(--accent); font-size: 1.1rem;">In Call</span>
                     <div class="call-controls">
+                        <button id="btn-toggle-mic" class="btn-secondary" onclick="rtcManager.toggleMic()">🎤 Mute</button>
+                        <button id="btn-toggle-video" class="btn-secondary" onclick="rtcManager.toggleVideo()">📷 Stop Video</button>
                         <button id="btn-fullscreen" onclick="toggleFullscreen()">⛶</button>
                         <button id="btn-end-call" class="btn-danger" onclick="rtcManager.leave()">Hang Up</button>
                     </div>
@@ -329,7 +332,7 @@
         // ==========================================
         // 1. CONFIGURATIONS
         // ==========================================
-        const firebaseConfig = {
+       const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -531,7 +534,7 @@
         // THE MESH WEBRTC ENGINE (Group & 1:1)
         // ==========================================
         const rtcManager = {
-            peers: {}, // { remoteUid: RTCPeerConnection }
+            peers: {}, 
             localStream: null,
             unsubs: [],
             chatId: null,
@@ -541,17 +544,51 @@
 
             async setupMedia() {
                 this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                document.getElementById('video-grid').innerHTML = '<video id="local-video" autoplay playsinline muted></video>';
+                document.getElementById('video-grid').innerHTML = `
+                    <div class="video-wrapper" id="wrapper-local">
+                        <video id="local-video" autoplay playsinline muted style="transform: scaleX(-1);"></video>
+                        <div class="video-name-badge">You <span class="mic-muted-icon" id="local-mute-icon">🔇</span></div>
+                    </div>`;
                 document.getElementById('local-video').srcObject = this.localStream;
             },
 
-            async join() {
+            toggleMic() {
+                if(!this.localStream) return;
+                const track = this.localStream.getAudioTracks()[0];
+                if(track) {
+                    track.enabled = !track.enabled;
+                    const btn = document.getElementById('btn-toggle-mic');
+                    const icon = document.getElementById('local-mute-icon');
+                    if(track.enabled) {
+                        btn.textContent = '🎤 Mute'; btn.classList.remove('btn-danger'); icon.style.display = 'none'; this.broadcastMuteState(false);
+                    } else {
+                        btn.textContent = '🔇 Unmute'; btn.classList.add('btn-danger'); icon.style.display = 'inline-block'; this.broadcastMuteState(true);
+                    }
+                }
+            },
+
+            toggleVideo() {
+                if(!this.localStream) return;
+                const track = this.localStream.getVideoTracks()[0];
+                if(track) {
+                    track.enabled = !track.enabled;
+                    const btn = document.getElementById('btn-toggle-video');
+                    if(track.enabled) { btn.textContent = '📷 Stop Video'; btn.classList.remove('btn-danger'); } 
+                    else { btn.textContent = '🚫 Start Video'; btn.classList.add('btn-danger'); }
+                }
+            },
+
+            async broadcastMuteState(isMuted) {
+                if(this.chatId && currentUser) { await updateDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), { audioMuted: isMuted }).catch(e=>{}); }
+            },
+
+            async join(isInitiator = false) {
                 if (!currentChatId) return;
                 this.chatId = currentChatId;
                 
                 initAudio();
-                if (!currentChatUser.isGroup) playDialingSound(); // Dial tone for DMs
-                else playPickupSound(); // Instant join chime for groups
+                if (isInitiator && !currentChatUser.isGroup) playDialingSound(); 
+                else playPickupSound(); 
 
                 document.getElementById('call-panel').classList.remove('hidden');
                 document.getElementById('btn-join-call').classList.add('hidden');
@@ -559,39 +596,35 @@
                 
                 await this.setupMedia();
 
-                // 1. Mark Call Active in Meta
                 const metaPayload = { callActive: true };
-                if (!currentChatUser.isGroup) metaPayload.ringing = currentChatUser.uid; // Ring specific user
+                if (!currentChatUser.isGroup) { metaPayload.ringing = isInitiator ? currentChatUser.uid : null; }
                 await setDoc(doc(db, 'chats_meta', this.chatId), metaPayload, {merge:true});
 
-                // 2. Add self to participants
-                await setDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), { joined: serverTimestamp() });
+                await setDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid), { joined: serverTimestamp(), audioMuted: false });
 
-                // 3. Listen for signals addressed to me
                 const signalsRef = collection(db, `chats/${this.chatId}/signals`);
                 const q = query(signalsRef, where('to', '==', currentUser.uid));
                 this.unsubs.push(onSnapshot(q, snap => {
                     snap.docChanges().forEach(change => {
                         if (change.type === 'added') {
                             this.handleSignal(change.doc.data(), change.doc.id);
-                            // Delete signal after reading to keep DB clean
                             deleteDoc(doc(db, `chats/${this.chatId}/signals`, change.doc.id)).catch(e=>{}); 
                         }
                     });
                 }));
 
-                // 4. Listen for other participants
                 const pColl = collection(db, `chats/${this.chatId}/participants`);
                 this.unsubs.push(onSnapshot(pColl, snap => {
                     snap.docChanges().forEach(change => {
                         if (change.type === 'added' && change.doc.id !== currentUser.uid) {
-                            stopRingtone(); // Someone arrived, stop ringing
-                            if (!currentChatUser.isGroup) playPickupSound(); 
-                            
-                            // To avoid double-offers, only the user with the lexicographically larger UID initiates
-                            if (currentUser.uid > change.doc.id) {
-                                this.initiatePeer(change.doc.id);
-                            }
+                            stopRingtone(); 
+                            if (!currentChatUser.isGroup && !isInitiator) playPickupSound(); 
+                            if (currentUser.uid > change.doc.id) { this.initiatePeer(change.doc.id); }
+                        }
+                        if (change.type === 'modified' && change.doc.id !== currentUser.uid) {
+                            const data = change.doc.data();
+                            const icon = document.getElementById(`mute-icon-${change.doc.id}`);
+                            if(icon) icon.style.display = data.audioMuted ? 'inline-block' : 'none';
                         }
                         if (change.type === 'removed' && change.doc.id !== currentUser.uid) {
                             this.removePeer(change.doc.id);
@@ -602,52 +635,41 @@
 
             createPeer(remoteUid) {
                 if (this.peers[remoteUid]) return this.peers[remoteUid];
-
                 const pc = new RTCPeerConnection(this.servers);
                 this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
-
-                pc.onicecandidate = event => {
-                    if (event.candidate) {
-                        addDoc(collection(db, `chats/${this.chatId}/signals`), {
-                            from: currentUser.uid, to: remoteUid, type: 'candidate', candidate: event.candidate.toJSON()
-                        });
-                    }
-                };
+                pc.onicecandidate = event => { if (event.candidate) { addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'candidate', candidate: event.candidate.toJSON() }); } };
 
                 const remoteStream = new MediaStream();
-                const videoEl = document.createElement('video');
-                videoEl.id = `video-${remoteUid}`;
-                videoEl.autoplay = true; videoEl.playsInline = true;
-                videoEl.srcObject = remoteStream;
-                document.getElementById('video-grid').appendChild(videoEl);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'video-wrapper'; wrapper.id = `wrapper-${remoteUid}`;
+                const userName = allUsersMap[remoteUid]?.username || 'Unknown';
+                wrapper.innerHTML = `
+                    <video id="video-${remoteUid}" autoplay playsinline></video>
+                    <div class="video-name-badge">${userName} <span class="mic-muted-icon" id="mute-icon-${remoteUid}">🔇</span></div>
+                `;
+                document.getElementById('video-grid').appendChild(wrapper);
+                document.getElementById(`video-${remoteUid}`).srcObject = remoteStream;
 
                 pc.ontrack = event => { event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track)); };
-                
-                this.peers[remoteUid] = pc;
-                return pc;
+                this.peers[remoteUid] = pc; return pc;
             },
 
             async initiatePeer(remoteUid) {
                 const pc = this.createPeer(remoteUid);
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
-                await addDoc(collection(db, `chats/${this.chatId}/signals`), {
-                    from: currentUser.uid, to: remoteUid, type: 'offer', sdp: offer.sdp
-                });
+                await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'offer', sdp: offer.sdp });
             },
 
             async handleSignal(data) {
-                if (!this.chatId) return; // Ignore signals if we aren't in a call
+                if (!this.chatId) return; 
                 const remoteUid = data.from;
-
                 if (data.type === 'offer') {
                     const pc = this.createPeer(remoteUid);
                     await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: data.sdp }));
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
-                    await addDoc(collection(db, `chats/${this.chatId}/signals`), {
-                        from: currentUser.uid, to: remoteUid, type: 'answer', sdp: answer.sdp
-                    });
+                    await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'answer', sdp: answer.sdp });
                 } else if (data.type === 'answer') {
                     const pc = this.peers[remoteUid];
                     if (pc) await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
@@ -658,55 +680,37 @@
             },
 
             removePeer(remoteUid) {
-                if (this.peers[remoteUid]) {
-                    this.peers[remoteUid].close();
-                    delete this.peers[remoteUid];
-                }
-                const videoEl = document.getElementById(`video-${remoteUid}`);
-                if (videoEl) videoEl.remove();
+                if (this.peers[remoteUid]) { this.peers[remoteUid].close(); delete this.peers[remoteUid]; }
+                const wrapperEl = document.getElementById(`wrapper-${remoteUid}`);
+                if (wrapperEl) wrapperEl.remove();
 
-                // If DM and the other person left, end the call
-                if (!currentChatUser.isGroup && Object.keys(this.peers).length === 0) {
-                    this.leave();
-                }
+                if (!currentChatUser.isGroup && Object.keys(this.peers).length === 0) { this.leave(); }
             },
 
             async leave() {
-                stopRingtone();
-                playHangupSound();
+                stopRingtone(); playHangupSound();
                 
                 document.getElementById('call-panel').classList.add('hidden');
                 document.getElementById('call-panel').classList.remove('fullscreen');
 
                 if (this.localStream) { this.localStream.getTracks().forEach(t => t.stop()); this.localStream = null; }
                 
-                Object.values(this.peers).forEach(pc => pc.close());
-                this.peers = {};
+                Object.values(this.peers).forEach(pc => pc.close()); this.peers = {};
                 document.getElementById('video-grid').innerHTML = '';
-
-                this.unsubs.forEach(unsub => unsub());
-                this.unsubs = [];
+                this.unsubs.forEach(unsub => unsub()); this.unsubs = [];
 
                 if (this.chatId) {
-                    // Remove self from participants
                     await deleteDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid)).catch(e=>{});
-                    // Check if room is empty to turn off activeCall flag
-                    getDoc(doc(db, 'chats_meta', this.chatId)).then(snap => {
-                        // Clear ringing
-                        updateDoc(doc(db, 'chats_meta', this.chatId), { ringing: null }).catch(e=>{});
-                    });
+                    getDoc(doc(db, 'chats_meta', this.chatId)).then(snap => { updateDoc(doc(db, 'chats_meta', this.chatId), { ringing: null }).catch(e=>{}); });
                     this.chatId = null;
                 }
             },
 
-            // --- Global DM Incoming Call Listener ---
             listenForGlobalCalls() {
-                // Listen to all DMs for a "ringing" flag directed at me
                 onSnapshot(collection(db, 'chats_meta'), snap => {
                     snap.docChanges().forEach(change => {
                         const data = change.doc.data();
                         if (data.ringing === currentUser.uid) {
-                            // Find who is calling based on the ChatID
                             const uids = change.doc.id.split('_');
                             const callerUid = uids[0] === currentUser.uid ? uids[1] : uids[0];
                             this.globalIncomingCaller = allUsersMap[callerUid];
@@ -719,15 +723,10 @@
                             document.getElementById('banner-caller-name').textContent = this.globalIncomingCaller?.username || 'Unknown';
                             document.getElementById('global-call-banner').classList.add('active');
                             
-                            // Send Push Notif
                             if (currentUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
-                                fetch(VERCEL_API_URL, {
-                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ subscription: currentUser.pushSubscription, title: "Incoming Video Call", body: "Tap to answer", icon: null })
-                                }).catch(e=>{});
+                                fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentUser.pushSubscription, title: "Incoming Video Call", body: "Tap to answer", icon: null }) }).catch(e=>{});
                             }
                         } else if (!data.ringing && change.doc.id === this.globalIncomingCallId) {
-                            // Call ended/answered
                             stopRingtone();
                             document.getElementById('global-call-banner').classList.remove('active');
                             const callerIcon = document.getElementById(`call-icon-${this.globalIncomingCaller?.uid}`);
@@ -744,30 +743,22 @@
                 document.getElementById('global-call-banner').classList.remove('active');
                 const callerIcon = document.getElementById(`call-icon-${this.globalIncomingCaller.uid}`);
                 if (callerIcon) callerIcon.style.display = 'none';
-
                 openChat(this.globalIncomingCaller);
-                this.join(); // The join function will automatically sync to the existing activeCall
+                this.join(false); 
             },
 
             declineGlobal() {
-                if (this.globalIncomingCallId) {
-                    updateDoc(doc(db, 'chats_meta', this.globalIncomingCallId), { ringing: null }).catch(e=>{});
-                }
-                stopRingtone();
-                playHangupSound();
+                if (this.globalIncomingCallId) { updateDoc(doc(db, 'chats_meta', this.globalIncomingCallId), { ringing: null }).catch(e=>{}); }
+                stopRingtone(); playHangupSound();
                 document.getElementById('global-call-banner').classList.remove('active');
-                if (this.globalIncomingCaller) {
-                    const callerIcon = document.getElementById(`call-icon-${this.globalIncomingCaller.uid}`);
-                    if (callerIcon) callerIcon.style.display = 'none';
-                }
+                if (this.globalIncomingCaller) { const callerIcon = document.getElementById(`call-icon-${this.globalIncomingCaller.uid}`); if (callerIcon) callerIcon.style.display = 'none'; }
                 this.globalIncomingCallId = null; this.globalIncomingCaller = null;
             }
         };
 
-        window.rtcManager = rtcManager; // Expose to global for HTML buttons
+        window.rtcManager = rtcManager; 
         window.answerGlobalCall = () => rtcManager.answerGlobal();
         window.declineGlobalCall = () => rtcManager.declineGlobal();
-
 
         // ==========================================
         // CHAT INIT & TEXT LOGIC
@@ -833,17 +824,13 @@
             unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                 const metaData = metaSnap.data();
                 
-                // Call UI Buttons Logic
                 const btnStart = document.getElementById('btn-start-call');
                 const btnJoin = document.getElementById('btn-join-call');
                 if (metaData && metaData.callActive && !rtcManager.chatId) {
-                    // Call is active, but we aren't in it
                     btnJoin.classList.remove('hidden'); btnStart.classList.add('hidden');
                 } else if (!rtcManager.chatId) {
-                    // No call active
                     btnJoin.classList.add('hidden'); btnStart.classList.remove('hidden');
                 } else {
-                    // We are IN the call
                     btnJoin.classList.add('hidden'); btnStart.classList.add('hidden');
                 }
 
@@ -895,8 +882,6 @@
         // ==========================================
         // SENDING MESSAGES
         // ==========================================
-        document.getElementById('btn-start-call').addEventListener('click', () => rtcManager.join());
-
         document.getElementById('message-form').addEventListener('submit', async (e) => {
             e.preventDefault(); const input = document.getElementById('message-input'); const text = input.value.trim();
             if (text && currentChatId) {
