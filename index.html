@@ -114,12 +114,12 @@
         .fullscreen .video-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); }
         
         .video-wrapper { position: relative; width: 100%; height: 100%; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center; }
-        .video-wrapper video { width: 100%; height: 100%; object-fit: contain; }
+        .video-wrapper video { width: 100%; height: 100%; object-fit: contain; z-index: 0; }
+        .fullscreen .video-wrapper { max-height: 45vh; } 
         #local-video { transform: scaleX(-1); }
 
         .video-name-badge { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; z-index: 2; pointer-events: none; display: flex; align-items: center; gap: 5px; }
         .status-icon { display: none; }
-        .status-icon.muted { display: inline-block; color: #ed4245; }
 
         .call-controls { display: flex; gap: 10px; align-items: center; }
         .call-controls button { padding: 6px 12px; font-size: 0.85rem; }
@@ -294,7 +294,7 @@
                         <button id="btn-toggle-mic" class="btn-secondary" onclick="rtcManager.toggleMic()">🎤 Mute</button>
                         <button id="btn-toggle-video" class="btn-secondary" onclick="rtcManager.toggleVideo()">📷 Stop Video</button>
                         <button id="btn-fullscreen" onclick="toggleFullscreen()">⛶</button>
-                        <button id="btn-end-call" class="btn-danger" onclick="rtcManager.leave()">Hang Up</button>
+                        <button id="btn-end-call" class="btn-danger" onclick="rtcManager.leave(true)">Hang Up</button>
                     </div>
                 </div>
                 <div class="video-grid" id="video-grid">
@@ -586,16 +586,23 @@
             chatId: null,
             globalIncomingCallId: null,
             globalIncomingCaller: null,
+            callStartTime: null,
+            isInitiator: false,
             servers: { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] },
 
             async setupMedia() {
                 const constraints = { video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 24 } }, audio: true };
                 try {
                     this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const myProfile = allUsersMap[currentUser.uid] || currentUser;
+                    
                     document.getElementById('video-grid').innerHTML = `
                         <div class="video-wrapper" id="wrapper-local">
-                            <video id="local-video" autoplay playsinline muted></video>
-                            <div class="video-name-badge">You <span class="status-icon muted" id="local-mute-icon" style="display:none;">🔇</span><span class="status-icon muted" id="local-video-icon" style="display:none;">🚫</span></div>
+                            <div class="video-pfp" id="local-pfp" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-secondary); align-items:center; justify-content:center; z-index:1;">
+                                <div class="avatar-frame" style="width: 80px; height: 80px; font-size: 32px;">${getAvatarHTML(myProfile)}</div>
+                            </div>
+                            <video id="local-video" autoplay playsinline muted style="z-index:0;"></video>
+                            <div class="video-name-badge">You <span class="status-icon" id="local-mute-icon" style="display:none;">🔇</span></div>
                         </div>`;
                     document.getElementById('local-video').srcObject = this.localStream;
                 } catch(e) { showToast("Hardware Error", "Could not access Camera/Mic"); }
@@ -622,11 +629,17 @@
                 if(track) {
                     track.enabled = !track.enabled;
                     const btn = document.getElementById('btn-toggle-video');
-                    const icon = document.getElementById('local-video-icon');
+                    const localVid = document.getElementById('local-video');
+                    const localPfp = document.getElementById('local-pfp');
+                    
                     if(track.enabled) { 
-                        btn.textContent = '📷 Stop Video'; btn.classList.remove('btn-danger'); icon.style.display = 'none'; this.broadcastState({videoMuted: false});
+                        btn.textContent = '📷 Stop Video'; btn.classList.remove('btn-danger'); 
+                        localVid.style.display = 'block'; localPfp.style.display = 'none';
+                        this.broadcastState({videoMuted: false});
                     } else { 
-                        btn.textContent = '🚫 Start Video'; btn.classList.add('btn-danger'); icon.style.display = 'inline-block'; this.broadcastState({videoMuted: true});
+                        btn.textContent = '🚫 Start Video'; btn.classList.add('btn-danger'); 
+                        localVid.style.display = 'none'; localPfp.style.display = 'flex';
+                        this.broadcastState({videoMuted: true});
                     }
                 }
             },
@@ -638,6 +651,8 @@
             async join(isInitiator = false) {
                 if (!currentChatId) return;
                 this.chatId = currentChatId;
+                this.isInitiator = isInitiator;
+                this.callStartTime = Date.now();
                 
                 if (isInitiator && !currentChatUser.isGroup) playDialingSound(); 
                 else playPickupSound(); 
@@ -675,12 +690,22 @@
                             this.createPeer(change.doc.id);
                             if (currentUser.uid > change.doc.id) { this.initiatePeer(change.doc.id); }
                         }
-                        if (change.type === 'modified' && change.doc.id !== currentUser.uid) {
-                            const data = change.doc.data();
-                            const micIcon = document.getElementById(`mute-icon-${change.doc.id}`);
-                            const vidIcon = document.getElementById(`video-icon-${change.doc.id}`);
-                            if(micIcon) micIcon.style.display = data.audioMuted ? 'inline-block' : 'none';
-                            if(vidIcon) vidIcon.style.display = data.videoMuted ? 'inline-block' : 'none';
+                        if (change.type === 'modified' || change.type === 'added') {
+                            if (change.doc.id !== currentUser.uid) {
+                                const data = change.doc.data();
+                                const micIcon = document.getElementById(`mute-icon-${change.doc.id}`);
+                                if(micIcon) micIcon.style.display = data.audioMuted ? 'inline-block' : 'none';
+                                
+                                const remoteVid = document.getElementById(`video-${change.doc.id}`);
+                                const remotePfp = document.getElementById(`pfp-${change.doc.id}`);
+                                if (remoteVid && remotePfp) {
+                                    if (data.videoMuted) {
+                                        remoteVid.style.display = 'none'; remotePfp.style.display = 'flex';
+                                    } else {
+                                        remoteVid.style.display = 'block'; remotePfp.style.display = 'none';
+                                    }
+                                }
+                            }
                         }
                         if (change.type === 'removed' && change.doc.id !== currentUser.uid) {
                             this.removePeer(change.doc.id);
@@ -700,10 +725,12 @@
                 wrapper.className = 'video-wrapper'; wrapper.id = `wrapper-${remoteUid}`;
                 const userName = allUsersMap[remoteUid]?.username || 'Unknown';
                 wrapper.innerHTML = `
-                    <video id="video-${remoteUid}" autoplay playsinline></video>
+                    <div class="video-pfp" id="pfp-${remoteUid}" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-secondary); align-items:center; justify-content:center; z-index:1;">
+                        <div class="avatar-frame" style="width: 80px; height: 80px; font-size: 32px;">${getAvatarHTML(allUsersMap[remoteUid])}</div>
+                    </div>
+                    <video id="video-${remoteUid}" autoplay playsinline style="z-index:0;"></video>
                     <div class="video-name-badge">${userName} 
-                        <span class="status-icon muted" id="mute-icon-${remoteUid}">🔇</span>
-                        <span class="status-icon muted" id="video-icon-${remoteUid}">🚫</span>
+                        <span class="status-icon" id="mute-icon-${remoteUid}" style="display:none;">🔇</span>
                     </div>
                 `;
                 document.getElementById('video-grid').appendChild(wrapper);
@@ -766,12 +793,26 @@
                     await deleteDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid)).catch(e=>{});
                     if (!currentChatUser.isGroup) {
                         updateDoc(doc(db, 'chats_meta', this.chatId), { ringing: null, callActive: false }).catch(e=>{});
+                        
+                        // Push Call Summary Message to DB
+                        if (this.callStartTime) {
+                            const durationMs = Date.now() - this.callStartTime;
+                            const mins = Math.floor(durationMs / 60000);
+                            const secs = Math.floor((durationMs % 60000) / 1000);
+                            const durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                            
+                            let text = `📞 Call ended • ${durationStr}`;
+                            if (this.isInitiator) { text = `📞 You called ${currentChatUser.username} • ${durationStr}`; } 
+                            else { text = `📞 ${currentChatUser.username} called you • ${durationStr}`; }
+
+                            addDoc(collection(db, 'chats', this.chatId, 'messages'), { type: 'system', text: text, createdAt: serverTimestamp() }).catch(e=>{});
+                        }
                     }
                 }
                 this.chatId = null;
+                this.callStartTime = null;
             },
 
-            // BUG FIX: Global Bulletproof Ringer Listener
             activateGlobalRinger() {
                 if (unsubscribeGlobalRing) unsubscribeGlobalRing();
                 const q = query(collection(db, 'chats_meta'), where('ringing', '==', currentUser.uid));
@@ -819,16 +860,9 @@
 
             answerGlobal() {
                 if (!this.globalIncomingCaller || !this.globalIncomingCallId) return;
-                
-                // BUG FIX: Securely save the caller identity before clearing the UI state
                 const securedCallerIdentity = this.globalIncomingCaller; 
-                
                 this.clearIncomingRing();
-                
-                // Securely open the chat window with the preserved identity
                 openChat(securedCallerIdentity);
-                
-                // Slight delay to ensure DOM is ready before WebRTC attachment
                 setTimeout(() => this.join(false), 200); 
             },
 
@@ -945,6 +979,17 @@
 
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data(); const msgId = docSnap.id; lastMessageData = data;
+                    
+                    // NEW: Render System Call Messages
+                    if (data.type === 'system') {
+                        const sysDiv = document.createElement('div');
+                        sysDiv.style.textAlign = "center"; sysDiv.style.color = "var(--text-muted)";
+                        sysDiv.style.fontSize = "0.85rem"; sysDiv.style.margin = "15px 0"; sysDiv.style.fontWeight = "bold";
+                        sysDiv.innerHTML = data.text;
+                        container.appendChild(sysDiv);
+                        return; // Skip normal rendering for this message
+                    }
+
                     let decryptedText = "[Error]"; try { decryptedText = CryptoJS.AES.decrypt(data.ciphertext, GLOBAL_OBFUSCATION_KEY).toString(CryptoJS.enc.Utf8); } catch (e) {}
                     let timeString = data.createdAt ? data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
                     const senderProfile = allUsersMap[data.senderId]; const isMe = data.senderId === currentUser.uid;
