@@ -37,11 +37,14 @@
         #toast-container { position: fixed; top: 70px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 90vw; }
         .toast { background: var(--bg-secondary); border-left: 4px solid var(--accent); color: var(--text-normal); padding: 15px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.3s ease-out; position: relative; overflow: hidden; }
         .toast-title { font-weight: bold; color: var(--text-header); margin-bottom: 5px; font-size: 0.95rem; }
+        .toast-body { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.fade-out { opacity: 0; transition: opacity 0.3s ease-out; }
 
         /* Image Lightbox */
         #lightbox { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s ease-out; cursor: zoom-out; backdrop-filter: blur(5px); }
         #lightbox.active { opacity: 1; pointer-events: all; }
-        #lightbox img { max-width: 95vw; max-height: 95dvh; border-radius: 8px; transform: scale(0.9); transition: transform 0.2s ease-out; }
+        #lightbox img { max-width: 95vw; max-height: 95dvh; border-radius: 8px; transform: scale(0.9); transition: transform 0.2s ease-out; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         #lightbox.active img { transform: scale(1); }
 
         /* Modals & Auth */
@@ -94,6 +97,7 @@
 
         #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
         .user-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .user-details strong { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         /* Chat Area */
         #chat-area { flex: 1; background: var(--bg-primary); display: flex; flex-direction: column; min-width: 0; }
@@ -104,18 +108,17 @@
         #btn-join-call { background: #3ba55c; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; animation: glowJoin 2s infinite; }
         @keyframes glowJoin { 0% { box-shadow: 0 0 5px #3ba55c; } 50% { box-shadow: 0 0 15px #3ba55c; } 100% { box-shadow: 0 0 5px #3ba55c; } }
 
-        /* FIXED: Dynamic Mesh Video Panel with proper size constraints */
+        /* Dynamic Mesh Video Panel */
         #call-panel { background: var(--bg-tertiary); border-bottom: 1px solid var(--divider); padding: 15px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 4; transition: all 0.3s ease; max-height: 30vh; }
         #call-panel.fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-height: none; z-index: 9999; border-radius: 0; }
         .call-panel-header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         
         .video-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: 100%; flex: 1; overflow-y: auto; padding-bottom: 5px; }
-        
-        /* Video Wrappers correctly scaling to prevent chat squashing */
         .video-wrapper { position: relative; flex: 1 1 150px; max-width: 45%; max-height: 100%; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center; }
         .video-wrapper video { width: 100%; height: 100%; object-fit: contain; }
         .fullscreen .video-wrapper { max-width: 40vw; max-height: 45vh; }
-        
+        #local-video { transform: scaleX(-1); }
+
         .video-name-badge { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; z-index: 2; pointer-events: none; display: flex; align-items: center; gap: 5px; }
         .status-icon { display: none; }
         .status-icon.muted { display: inline-block; color: #ed4245; }
@@ -146,6 +149,7 @@
         .msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
         .msg-username { font-weight: 500; font-size: 1rem; }
         .msg-time { color: var(--text-muted); font-size: 0.75rem; }
+        .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         .msg-text { color: var(--text-normal); font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
         
         .quoted-message { font-size: 0.8rem; color: var(--text-muted); border-left: 2px solid var(--divider); padding-left: 8px; margin-bottom: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; transition: color 0.1s;}
@@ -328,21 +332,21 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // ==========================================
-        // 1. CONFIGURATIONS
+        // 1. INJECTED CREDENTIALS
         // ==========================================
         const firebaseConfig = {
-          apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
-          authDomain: "messenger-cfa6e.firebaseapp.com",
-          projectId: "messenger-cfa6e",
-          storageBucket: "messenger-cfa6e.firebasestorage.app",
-          messagingSenderId: "710266615819",
-          appId: "1:710266615819:web:cadeb12f54c0f861032f0e",
-          measurementId: "G-8P070D3ENF"
+            apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
+            authDomain: "messenger-cfa6e.firebaseapp.com",
+            projectId: "messenger-cfa6e",
+            storageBucket: "messenger-cfa6e.firebasestorage.app",
+            messagingSenderId: "710266615819",
+            appId: "1:710266615819:web:cadeb12f54c0f861032f0e",
+            measurementId: "G-8P070D3ENF"
         };
 
         const GLOBAL_OBFUSCATION_KEY = "MySuperSecretAppPassword123!";
+        const VERCEL_API_URL = "https://backend-gray-psi-14.vercel.app/api/notify"; 
         const VAPID_PUBLIC_KEY = "BDqR8D_4VJvnToLK1hTUZy8cG_WNCDnPLkDeNE28IZsaBX4NjKOV2kxeLJSrRH02M0YYsOOrfpKamuG7h6KD5x4";
-        const VERCEL_API_URL = "https://backend-gray-psi-14.vercel.app/api/notify";
 
         const app = initializeApp(firebaseConfig);
         const db = initializeFirestore(app, { localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}) });
@@ -364,24 +368,111 @@
         }
 
         // ==========================================
-        // AUDIO & UI HELPERS 
+        // AUDIO UNLOCKER & SYNTHESIZER
         // ==========================================
-        let audioCtx = null; let ringtoneInterval = null;
-        function initAudio() { if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } if (audioCtx.state === 'suspended') { audioCtx.resume(); } }
-        function playNote(freq, time, duration) {
-            if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time);
-            gain.gain.linearRampToValueAtTime(0.2, time + 0.02); gain.gain.linearRampToValueAtTime(0, time + duration);
-            osc.start(time); osc.stop(time + duration);
+        let audioCtx = null; 
+        let ringtoneInterval = null;
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0; // Silent note to force browser unlock
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(0);
+                osc.stop(0.01);
+                
+                audioUnlocked = true;
+            } catch (e) { console.log("Audio unlock failed:", e); }
         }
-        function playRingtone() { initAudio(); if (ringtoneInterval) clearInterval(ringtoneInterval); function playPattern() { const t = audioCtx.currentTime; for(let i=0; i<8; i++) { playNote(400, t + (i * 0.12), 0.08); } playNote(600, t + 1.0, 0.15); playNote(500, t + 1.2, 0.15); playNote(600, t + 1.5, 0.15); playNote(500, t + 1.7, 0.15); } playPattern(); ringtoneInterval = setInterval(playPattern, 2200); }
-        function playDialingSound() { initAudio(); if (ringtoneInterval) clearInterval(ringtoneInterval); function playPattern() { if (!audioCtx) return; const t = audioCtx.currentTime; playNote(440, t, 1.0); playNote(480, t, 1.0); } playPattern(); ringtoneInterval = setInterval(playPattern, 3000); }
-        function stopRingtone() { if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; } }
-        function playPickupSound() { initAudio(); if (!audioCtx) return; playNote(440, audioCtx.currentTime, 0.1); playNote(660, audioCtx.currentTime + 0.1, 0.2); }
-        function playHangupSound() { initAudio(); if (!audioCtx) return; playNote(660, audioCtx.currentTime, 0.1); playNote(440, audioCtx.currentTime + 0.1, 0.2); }
-        function playPopSound() { initAudio(); if (!audioCtx) return; playNote(400, audioCtx.currentTime, 0.1); }
-        function playDingSound() { initAudio(); if (!audioCtx) return; playNote(880, audioCtx.currentTime, 0.2); }
+
+        // Listen for any interaction to unlock audio
+        ['click', 'touchstart', 'keydown'].forEach(evt => document.body.addEventListener(evt, unlockAudio, {once:true}));
+
+        function initAudio() { 
+            try {
+                if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } 
+                if (audioCtx.state === 'suspended') { audioCtx.resume(); } 
+            } catch(e) {}
+        }
+
+        function playNote(freq, time, duration) {
+            try {
+                if (!audioCtx) return; 
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.2, time + 0.02); gain.gain.linearRampToValueAtTime(0, time + duration);
+                osc.start(time); osc.stop(time + duration);
+            } catch(e) {}
+        }
+
+        function playRingtone() { 
+            try {
+                initAudio(); 
+                if (ringtoneInterval) clearInterval(ringtoneInterval); 
+                function playPattern() { 
+                    try {
+                        const t = audioCtx.currentTime; 
+                        for(let i=0; i<8; i++) { playNote(400, t + (i * 0.12), 0.08); } 
+                        playNote(600, t + 1.0, 0.15); playNote(500, t + 1.2, 0.15); 
+                        playNote(600, t + 1.5, 0.15); playNote(500, t + 1.7, 0.15); 
+                    } catch(e){}
+                } 
+                playPattern(); 
+                ringtoneInterval = setInterval(playPattern, 2200); 
+            } catch(e) {}
+        }
+
+        function playDialingSound() { 
+            try {
+                initAudio(); 
+                if (ringtoneInterval) clearInterval(ringtoneInterval); 
+                function playPattern() { 
+                    try {
+                        if (!audioCtx) return; 
+                        const t = audioCtx.currentTime; 
+                        playNote(440, t, 1.0); playNote(480, t, 1.0); 
+                    } catch(e){}
+                } 
+                playPattern(); 
+                ringtoneInterval = setInterval(playPattern, 3000); 
+            } catch(e) {}
+        }
+
+        function stopRingtone() { 
+            try {
+                if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; } 
+            } catch(e){}
+        }
+
+        function playPickupSound() { 
+            try {
+                initAudio(); if (!audioCtx) return; 
+                playNote(440, audioCtx.currentTime, 0.1); playNote(660, audioCtx.currentTime + 0.1, 0.2); 
+            } catch(e){}
+        }
+
+        function playHangupSound() { 
+            try {
+                initAudio(); if (!audioCtx) return; 
+                playNote(660, audioCtx.currentTime, 0.1); playNote(440, audioCtx.currentTime + 0.1, 0.2); 
+            } catch(e){}
+        }
+
+        function playPopSound() { 
+            try { initAudio(); if (!audioCtx) return; playNote(400, audioCtx.currentTime, 0.1); } catch(e){} 
+        }
+
+        function playDingSound() { 
+            try { initAudio(); if (!audioCtx) return; playNote(880, audioCtx.currentTime, 0.2); } catch(e){} 
+        }
 
         window.openLightbox = function(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('active'); };
         window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('active'); setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200); };
@@ -431,14 +522,14 @@
         function urlBase64ToUint8Array(base64String) { const padding = '='.repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/'); const rawData = window.atob(base64); const outputArray = new Uint8Array(rawData.length); for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); } return outputArray; }
 
         document.getElementById('btn-signup').addEventListener('click', async () => {
-            initAudio(); 
+            unlockAudio(); requestNotificationPermission(); 
             const email = document.getElementById('auth-email').value; const password = document.getElementById('auth-password').value; const username = document.getElementById('auth-username').value;
             if (!username) return document.getElementById('auth-error').textContent = "Username required";
             try { const cred = await createUserWithEmailAndPassword(auth, email, password); await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username, nameColor: '#ffffff', status: 'online' }); } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); initAudio(); 
+            e.preventDefault(); unlockAudio(); 
             try { await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value); } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
@@ -500,7 +591,6 @@
 
                         const chatId = generateChatId(currentUser.uid, userData.uid); let previousUnreadState = false; 
                         
-                        // THIS IS THE FIX: Individual Meta Listener handles Ringing specifically for this User's chat
                         const unsub = onSnapshot(doc(db, 'chats_meta', chatId), (metaSnap) => {
                             const metaData = metaSnap.data(); const dot = document.getElementById(`dot-${userData.uid}`);
                             const currentlyUnread = metaData && metaData.unreadBy === currentUser.uid;
@@ -509,7 +599,7 @@
                             if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) { showToast(`New Message`, `From ${userData.username}`, () => openChat(userData)); }
                             previousUnreadState = currentlyUnread;
 
-                            // Direct Message Ringing Logic!
+                            // Trigger Incoming Ring
                             if (metaData && metaData.ringing === currentUser.uid) {
                                 rtcManager.handleIncomingRing(userData.uid, chatId);
                             } else if (metaData && !metaData.ringing && rtcManager.globalIncomingCallId === chatId) {
@@ -538,7 +628,7 @@
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
         // ==========================================
-        // THE MESH WEBRTC ENGINE (Group & 1:1)
+        // THE MESH WEBRTC ENGINE
         // ==========================================
         const rtcManager = {
             peers: {}, 
@@ -550,18 +640,16 @@
             servers: { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] },
 
             async setupMedia() {
-                // FIXED VIDEO LAG: Hard cap on resolution and framerate to save mesh CPU!
-                const constraints = {
-                    video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 24 } },
-                    audio: true
-                };
-                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                document.getElementById('video-grid').innerHTML = `
-                    <div class="video-wrapper" id="wrapper-local">
-                        <video id="local-video" autoplay playsinline muted></video>
-                        <div class="video-name-badge">You <span class="status-icon muted" id="local-mute-icon" style="display:none;">🔇</span><span class="status-icon muted" id="local-video-icon" style="display:none;">🚫</span></div>
-                    </div>`;
-                document.getElementById('local-video').srcObject = this.localStream;
+                const constraints = { video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 24 } }, audio: true };
+                try {
+                    this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    document.getElementById('video-grid').innerHTML = `
+                        <div class="video-wrapper" id="wrapper-local">
+                            <video id="local-video" autoplay playsinline muted></video>
+                            <div class="video-name-badge">You <span class="status-icon muted" id="local-mute-icon" style="display:none;">🔇</span><span class="status-icon muted" id="local-video-icon" style="display:none;">🚫</span></div>
+                        </div>`;
+                    document.getElementById('local-video').srcObject = this.localStream;
+                } catch(e) { showToast("Hardware Error", "Could not access Camera/Mic"); }
             },
 
             toggleMic() {
@@ -602,7 +690,6 @@
                 if (!currentChatId) return;
                 this.chatId = currentChatId;
                 
-                initAudio();
                 if (isInitiator && !currentChatUser.isGroup) playDialingSound(); 
                 else playPickupSound(); 
 
@@ -635,6 +722,7 @@
                         if (change.type === 'added' && change.doc.id !== currentUser.uid) {
                             stopRingtone(); 
                             if (!currentChatUser.isGroup && !isInitiator) playPickupSound(); 
+                            
                             this.createPeer(change.doc.id);
                             if (currentUser.uid > change.doc.id) { this.initiatePeer(change.doc.id); }
                         }
@@ -655,7 +743,9 @@
             createPeer(remoteUid) {
                 if (this.peers[remoteUid]) return this.peers[remoteUid];
                 const pc = new RTCPeerConnection(this.servers);
-                this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+                }
                 pc.onicecandidate = event => { if (event.candidate) { addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'candidate', candidate: event.candidate.toJSON() }); } };
 
                 const remoteStream = new MediaStream();
@@ -677,30 +767,32 @@
             },
 
             async initiatePeer(remoteUid) {
-                const pc = this.createPeer(remoteUid);
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'offer', sdp: offer.sdp });
+                try {
+                    const pc = this.createPeer(remoteUid);
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'offer', sdp: offer.sdp });
+                } catch(e) { console.error("Peer Initiation Failed", e); }
             },
 
             async handleSignal(data) {
                 if (!this.chatId) return; 
                 const remoteUid = data.from;
-                
-                // RACE CONDITION FIX: Guarantee peer exists before pushing signal data into it
                 let pc = this.peers[remoteUid];
                 if (!pc) pc = this.createPeer(remoteUid);
 
-                if (data.type === 'offer') {
-                    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: data.sdp }));
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'answer', sdp: answer.sdp });
-                } else if (data.type === 'answer') {
-                    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
-                } else if (data.type === 'candidate') {
-                    await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e=>{});
-                }
+                try {
+                    if (data.type === 'offer') {
+                        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: data.sdp }));
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'answer', sdp: answer.sdp });
+                    } else if (data.type === 'answer') {
+                        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }));
+                    } else if (data.type === 'candidate') {
+                        await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e=>{});
+                    }
+                } catch(e) { console.error("Signal Handling Failed", e); }
             },
 
             removePeer(remoteUid) {
@@ -730,18 +822,19 @@
                 }
             },
 
-            // --- BUG FIX: Targeted Ringing Trigger ---
             handleIncomingRing(callerUid, chatId) {
-                if (this.globalIncomingCallId === chatId) return; // Prevent double trigger
+                if (this.globalIncomingCallId === chatId) return; 
                 this.globalIncomingCallId = chatId;
                 this.globalIncomingCaller = allUsersMap[callerUid];
 
-                playRingtone();
+                // ALWAYS trigger UI first before Audio to prevent blocking
                 const callerIcon = document.getElementById(`call-icon-${callerUid}`);
                 if (callerIcon) callerIcon.style.display = 'block';
 
                 document.getElementById('banner-caller-name').textContent = this.globalIncomingCaller?.username || 'Unknown';
                 document.getElementById('global-call-banner').classList.add('active');
+
+                playRingtone(); // Might fail if user hasn't clicked yet, but UI is safe!
                 
                 if (currentUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                     fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentUser.pushSubscription, title: "Incoming Video Call", body: "Tap to answer", icon: null }) }).catch(e=>{});
@@ -909,10 +1002,10 @@
                     
                     if (!currentChatUser.isGroup) {
                         await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
-                        if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Message", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); }
+                        if (currentChatUser && currentChatUser.pushSubscription) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Message", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); }
                     } else {
                         await setDoc(doc(db, 'chats_meta', 'group_general'), { lastSenderId: currentUser.uid, lastSenderName: document.getElementById('my-username').textContent, timestamp: serverTimestamp() }, {merge:true});
-                        Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New message from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); } } });
+                        Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New message from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); } });
                     }
                     input.value = '';
                 } catch (error) {}
@@ -936,10 +1029,10 @@
                         
                         if (!currentChatUser.isGroup) {
                             await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
-                            if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Photo", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); }
+                            if (currentChatUser && currentChatUser.pushSubscription) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Photo", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); }
                         } else {
                             await setDoc(doc(db, 'chats_meta', 'group_general'), { lastSenderId: currentUser.uid, lastSenderName: document.getElementById('my-username').textContent, timestamp: serverTimestamp() }, {merge:true});
-                            Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New Photo from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); } } });
+                            Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New Photo from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); } });
                         }
                     } catch (error) {}
                 }
