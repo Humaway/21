@@ -105,7 +105,7 @@
         #btn-join-call { background: #3ba55c; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; animation: glowJoin 2s infinite; }
         @keyframes glowJoin { 0% { box-shadow: 0 0 5px #3ba55c; } 50% { box-shadow: 0 0 15px #3ba55c; } 100% { box-shadow: 0 0 5px #3ba55c; } }
 
-        /* NEW DYNAMIC GRID: Adapts cleanly without squashing chat */
+        /* Dynamic Mesh Video Panel */
         #call-panel { background: var(--bg-tertiary); border-bottom: 1px solid var(--divider); padding: 15px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 4; transition: all 0.3s ease; max-height: 35vh; }
         #call-panel.fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-height: none; z-index: 9999; border-radius: 0; }
         .call-panel-header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
@@ -181,13 +181,8 @@
             #app-container.chat-active #chat-area { display: flex; }
             #mobile-back-btn { display: block; }
         }
-        
-        @media (min-width: 1024px) {
-            #messages-container, #input-area, #pinned-bar { padding-left: 10vw; padding-right: 10vw; }
-        }
-        @media (min-width: 1400px) {
-            #messages-container, #input-area, #pinned-bar { padding-left: 15vw; padding-right: 15vw; }
-        }
+        @media (min-width: 1024px) { #messages-container, #input-area, #pinned-bar { padding-left: 10vw; padding-right: 10vw; } }
+        @media (min-width: 1400px) { #messages-container, #input-area, #pinned-bar { padding-left: 15vw; padding-right: 15vw; } }
     </style>
 </head>
 <body>
@@ -363,7 +358,7 @@
         let unsubscribeChat = null;
         let unsubscribeMetaRealtime = null; 
         let unsubscribeGroupMeta = null;
-        let unsubscribeGlobalRing = null; // NEW: The bulletproof global ringer
+        let unsubscribeGlobalRing = null; 
         let unreadListeners = []; 
         let initialGroupLoad = true;
 
@@ -448,9 +443,6 @@
         window.setTheme = function(themeName) { document.body.setAttribute('data-theme', themeName); localStorage.setItem('chat_theme', themeName); }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
-        // ==========================================
-        // PRESENCE SYSTEM
-        // ==========================================
         function setUserStatus(status) { if (currentUser) { updateDoc(doc(db, "users", currentUser.uid), { status: status }).catch(()=>{}); document.getElementById('my-status-dot').className = `status-dot ${status}`; } }
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setUserStatus('online'); else setUserStatus('offline'); });
         window.addEventListener('pagehide', () => { setUserStatus('offline'); });
@@ -511,7 +503,7 @@
                     });
                 }
                 loadUsers();
-                rtcManager.activateGlobalRinger(); // NEW: Fire up bulletproof incoming call listener
+                rtcManager.activateGlobalRinger(); 
             } else {
                 setUserStatus('offline'); currentUser = null;
                 document.getElementById('app-container').classList.add('hidden'); document.getElementById('auth-screen').classList.remove('hidden'); document.getElementById('settings-modal').classList.add('hidden');
@@ -554,6 +546,7 @@
                         userDiv.addEventListener('click', () => openChat(userData)); userList.appendChild(userDiv);
 
                         const chatId = generateChatId(currentUser.uid, userData.uid); let previousUnreadState = false; 
+                        
                         const unsub = onSnapshot(doc(db, 'chats_meta', chatId), (metaSnap) => {
                             const metaData = metaSnap.data(); const dot = document.getElementById(`dot-${userData.uid}`);
                             const currentlyUnread = metaData && metaData.unreadBy === currentUser.uid;
@@ -596,7 +589,6 @@
             servers: { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] },
 
             async setupMedia() {
-                // FIXED VIDEO LAG: Hard limits on resolution/FPS
                 const constraints = { video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 24 } }, audio: true };
                 try {
                     this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -727,7 +719,7 @@
                     const offer = await pc.createOffer();
                     await pc.setLocalDescription(offer);
                     await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'offer', sdp: offer.sdp });
-                } catch(e) {}
+                } catch(e) { console.error("Peer Initiation Failed", e); }
             },
 
             async handleSignal(data) {
@@ -747,18 +739,20 @@
                     } else if (data.type === 'candidate') {
                         await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e=>{});
                     }
-                } catch(e) {}
+                } catch(e) { console.error("Signal Handling Failed", e); }
             },
 
             removePeer(remoteUid) {
                 if (this.peers[remoteUid]) { this.peers[remoteUid].close(); delete this.peers[remoteUid]; }
                 const wrapperEl = document.getElementById(`wrapper-${remoteUid}`);
                 if (wrapperEl) wrapperEl.remove();
+
                 if (!currentChatUser.isGroup && Object.keys(this.peers).length === 0) { this.leave(false); }
             },
 
             async leave(syncDatabase = true) {
                 stopRingtone(); playHangupSound();
+                
                 document.getElementById('call-panel').classList.add('hidden');
                 document.getElementById('call-panel').classList.remove('fullscreen');
 
@@ -825,9 +819,17 @@
 
             answerGlobal() {
                 if (!this.globalIncomingCaller || !this.globalIncomingCallId) return;
+                
+                // BUG FIX: Securely save the caller identity before clearing the UI state
+                const securedCallerIdentity = this.globalIncomingCaller; 
+                
                 this.clearIncomingRing();
-                openChat(this.globalIncomingCaller);
-                this.join(false); 
+                
+                // Securely open the chat window with the preserved identity
+                openChat(securedCallerIdentity);
+                
+                // Slight delay to ensure DOM is ready before WebRTC attachment
+                setTimeout(() => this.join(false), 200); 
             },
 
             declineGlobal() {
@@ -857,7 +859,6 @@
             document.getElementById('app-container').classList.add('chat-active');
             cancelReply();
             
-            // Update base button text contextually
             document.getElementById('btn-start-call').textContent = "📞 Call";
 
             getDoc(doc(db, 'chats_meta', currentChatId)).then(snap => { if (snap.exists() && snap.data().unreadBy === currentUser.uid) { updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }); } });
@@ -874,7 +875,6 @@
             document.getElementById('app-container').classList.add('chat-active');
             cancelReply();
             
-            // Update base button text contextually
             document.getElementById('btn-start-call').textContent = "📞 Start Call";
             
             loadChatMessages(); 
@@ -913,9 +913,8 @@
             unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                 const metaData = metaSnap.data();
                 
-                // BUG FIX: Accurate Teardown Logic
                 if (metaData && metaData.callActive === false && rtcManager.chatId === currentChatId) {
-                    rtcManager.leave(false); // They hung up, close my UI
+                    rtcManager.leave(false); 
                 }
 
                 const btnStart = document.getElementById('btn-start-call');
