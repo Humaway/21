@@ -3,37 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Naori Messenger</title>
+    <title>ANULChat</title>
     
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <style>
         :root {
-            --bg-primary: #36393f;
-            --bg-secondary: #2f3136;
-            --bg-tertiary: #202225;
-            --bg-input: #40444b;
-            --text-normal: #dcddde;
-            --text-muted: #72767d;
-            --text-header: #ffffff;
-            --accent: #5865F2;
-            --accent-hover: #4752C4;
-            --divider: #42464D;
+            --bg-primary: #36393f; --bg-secondary: #2f3136; --bg-tertiary: #202225;
+            --bg-input: #40444b; --text-normal: #dcddde; --text-muted: #72767d;
+            --text-header: #ffffff; --accent: #5865F2; --accent-hover: #4752C4; --divider: #42464D;
         }
 
         [data-theme="light"] { --bg-primary: #ffffff; --bg-secondary: #f2f3f5; --bg-tertiary: #e3e5e8; --bg-input: #ebedef; --text-normal: #2e3338; --text-muted: #747f8d; --text-header: #060607; --accent: #5865F2; --divider: #e3e5e8; }
         [data-theme="hacker"] { --bg-primary: #0a0a0a; --bg-secondary: #000000; --bg-tertiary: #111111; --bg-input: #1a1a1a; --text-normal: #00ff00; --text-muted: #008800; --text-header: #00ff00; --accent: #00cc00; --divider: #222222; }
         [data-theme="sunset"] { --bg-primary: #2d1b2e; --bg-secondary: #1f1320; --bg-tertiary: #3a233b; --bg-input: #4a2d4b; --text-normal: #fcd5ce; --text-muted: #d8b4e2; --text-header: #ffb5a7; --accent: #ff9f1c; --divider: #5a375c; }
-        [data-theme="naori"] { --bg-primary: #0a1128; --bg-secondary: #1c2541; --bg-tertiary: #050a1f; --bg-input: #2a3b5c; --text-normal: #80ffdb; --text-muted: #5390d9; --text-header: #ffffff; --accent: #00f5d4; --accent-hover: #00b4d8; --divider: #1a659e; }
+        [data-theme="anul"] { --bg-primary: #0a1128; --bg-secondary: #1c2541; --bg-tertiary: #050a1f; --bg-input: #2a3b5c; --text-normal: #80ffdb; --text-muted: #5390d9; --text-header: #ffffff; --accent: #00f5d4; --accent-hover: #00b4d8; --divider: #1a659e; }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-primary); color: var(--text-normal); height: 100dvh; overflow: hidden; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
         #app-container { display: flex; width: 100vw; height: 100dvh; position: relative; }
         .hidden { display: none !important; }
 
+        /* Global Incoming Call Banner */
+        #global-call-banner { position: fixed; top: 0; left: 0; width: 100vw; background: #3ba55c; color: white; padding: 15px 20px; display: flex; justify-content: center; align-items: center; gap: 15px; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transform: translateY(-100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-weight: bold; }
+        #global-call-banner.active { transform: translateY(0); }
+        .banner-btns { display: flex; gap: 10px; }
+        .banner-btns button { padding: 6px 12px; font-size: 0.9rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-answer { background: #ffffff; color: #3ba55c; }
+        .btn-decline { background: #ed4245; color: white; }
+
         /* Toast Notifications */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 90vw; }
+        #toast-container { position: fixed; top: 70px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 90vw; }
         .toast { background: var(--bg-secondary); border-left: 4px solid var(--accent); color: var(--text-normal); padding: 15px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.3s ease-out; position: relative; overflow: hidden; }
         .toast-title { font-weight: bold; color: var(--text-header); margin-bottom: 5px; font-size: 0.95rem; }
         .toast-body { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -89,6 +90,10 @@
         .user-item { display: flex; align-items: center; padding: 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: background 0.1s; position: relative; }
         .user-item:hover { background: var(--bg-input); color: var(--text-normal); }
         
+        /* Incoming Call Sidebar Icon */
+        .calling-icon { margin-left: auto; margin-right: 25px; color: #3ba55c; font-size: 1.2rem; display: none; animation: ringPulse 1s infinite; }
+        @keyframes ringPulse { 0% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(15deg); } 100% { transform: scale(1) rotate(0deg); } }
+
         .unread-dot { width: 12px; height: 12px; background-color: #ff3b30; border-radius: 50%; position: absolute; right: 15px; display: none; box-shadow: 0 0 8px #ff3b30; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); } }
 
@@ -107,7 +112,8 @@
         #call-panel { background: var(--bg-tertiary); border-bottom: 1px solid var(--divider); padding: 15px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 4; }
         .call-panel-header { display: flex; justify-content: space-between; align-items: center; }
         .video-grid { display: flex; gap: 15px; justify-content: center; width: 100%; }
-        .video-grid video { background: #000; border-radius: 8px; width: 48%; max-width: 500px; aspect-ratio: 16/9; object-fit: cover; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .video-grid video { background: #0b0b0b; border-radius: 8px; width: 48%; max-width: 500px; aspect-ratio: 16/9; object-fit: contain; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        #local-video { transform: scaleX(-1); } /* MIRROR FIX */
         .call-controls { display: flex; gap: 10px; }
         .call-controls button { padding: 6px 12px; font-size: 0.85rem; }
 
@@ -194,6 +200,15 @@
 </head>
 <body>
 
+    <div id="global-call-banner">
+        <span style="font-size: 1.2rem;">📞</span>
+        <span>Incoming Video Call from <span id="banner-caller-name">Someone</span></span>
+        <div class="banner-btns">
+            <button class="btn-answer" onclick="answerGlobalCall()">Answer</button>
+            <button class="btn-decline" onclick="declineGlobalCall()">Decline</button>
+        </div>
+    </div>
+
     <div id="lightbox" onclick="closeLightbox()">
         <img id="lightbox-img" src="" alt="Expanded View">
     </div>
@@ -202,7 +217,7 @@
 
     <div id="auth-screen" class="modal-overlay">
         <div class="modal">
-            <h2>Naori Messenger</h2>
+            <h2>ANULChat</h2>
             <form id="auth-form" class="form-col">
                 <input type="text" id="auth-username" placeholder="Username (for Sign Up)">
                 <input type="email" id="auth-email" placeholder="Email" required>
@@ -247,7 +262,7 @@
                     <button class="theme-btn" onclick="setTheme('light')">Light Mode</button>
                     <button class="theme-btn" onclick="setTheme('hacker')">Hacker</button>
                     <button class="theme-btn" onclick="setTheme('sunset')">Sunset</button>
-                    <button class="theme-btn" onclick="setTheme('naori')" style="grid-column: span 2; background: #00f5d4; color: #050a1f; font-weight: bold;">🌊 Naori Mode 🌊</button>
+                    <button class="theme-btn" onclick="setTheme('anul')" style="grid-column: span 2; background: #00f5d4; color: #050a1f; font-weight: bold;">🌊 ANUL Mode 🌊</button>
                 </div>
             </div>
             <button id="btn-save-profile" class="save-settings-btn">Save Profile Updates</button>
@@ -258,7 +273,7 @@
     <div id="app-container" class="hidden">
         <div id="sidebar">
             <div class="sidebar-header">
-                <span>Naori Server</span>
+                <span>ANULChat Server</span>
             </div>
             
             <div class="sidebar-category">Channels</div>
@@ -339,7 +354,7 @@
         // ==========================================
         
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
-        const firebaseConfig = {
+       const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -355,7 +370,6 @@
         
         const app = initializeApp(firebaseConfig);
         
-        // NEW: OFFLINE CACHE INITIALIZATION
         const db = initializeFirestore(app, {
             localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
         });
@@ -376,6 +390,10 @@
 
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
+        
+        // Global variables to track incoming calls
+        let globalIncomingCallId = null;
+        let globalIncomingCaller = null;
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed: ', err)));
@@ -416,7 +434,6 @@
         window.openLightbox = function(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('active'); };
         window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('active'); setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200); };
         
-        // NEW: GLOBAL SCROLL HELPER
         window.scrollToBottom = function() {
             const c = document.getElementById('messages-container');
             if (c) c.scrollTop = c.scrollHeight;
@@ -454,7 +471,7 @@
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
         // ==========================================
-        // BULLETPROOF PRESENCE SYSTEM
+        // BULLETPROOF PRESENCE SYSTEM (UPDATED)
         // ==========================================
         function setUserStatus(status) {
             if (currentUser) {
@@ -463,14 +480,14 @@
             }
         }
         
-        // Use visibilitychange to accurately track when user closes app or locks phone
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') setUserStatus('online');
             else setUserStatus('offline');
         });
         
-        // Backup catch-alls for app closure
+        // Extra aggressive hooks for sudden closes
         window.addEventListener('pagehide', () => { setUserStatus('offline'); });
+        window.addEventListener('unload', () => { setUserStatus('offline'); });
         window.addEventListener('beforeunload', () => { setUserStatus('offline'); });
 
         // ==========================================
@@ -602,6 +619,7 @@
                     if (userData.uid !== currentUser.uid) {
                         const userDiv = document.createElement('div');
                         userDiv.classList.add('user-item');
+                        userDiv.id = `sidebar-user-${userData.uid}`;
                         
                         userDiv.innerHTML = `
                             <div class="avatar-wrapper">
@@ -609,6 +627,7 @@
                                 <div class="status-dot ${userData.status || 'offline'}"></div>
                             </div>
                             <span style="color: ${userData.nameColor || 'var(--text-normal)'}; font-weight: 500;">${userData.username}</span>
+                            <span class="calling-icon" id="call-icon-${userData.uid}">📞</span>
                             <div class="unread-dot" id="dot-${userData.uid}"></div>
                         `;
                         userDiv.addEventListener('click', () => openChat(userData));
@@ -657,7 +676,7 @@
         document.getElementById('mobile-back-btn').addEventListener('click', () => document.getElementById('app-container').classList.remove('chat-active'));
 
         // ==========================================
-        // 5. CHAT, TYPING, QUOTES, GROUPS
+        // CHAT, TYPING, QUOTES, GROUPS
         // ==========================================
         
         let replyingToMsg = null;
@@ -788,10 +807,7 @@
             if (!currentChatUser.isGroup) {
                 unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                     const metaData = metaSnap.data();
-                    
-                    if (metaData && metaData.unreadBy === currentUser.uid) {
-                        updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null });
-                    }
+                    if (metaData && metaData.unreadBy === currentUser.uid) { updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }); }
                     
                     hasFriendRead = metaData && metaData.unreadBy === null;
                     updateReadReceiptUI();
@@ -834,7 +850,6 @@
 
                     let contentHTML = '';
                     if (data.type === 'image') {
-                        // NEW: Added onload="scrollToBottom()" directly to the image
                         contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image" onclick="openLightbox(this.src)" onload="scrollToBottom()">`;
                     } else {
                         contentHTML = `<div class="msg-text">${decryptedText}</div>`;
@@ -913,16 +928,13 @@
                 pinnedBar.style.display = hasPins ? 'block' : 'none';
                 isMyLastMessage = lastMessageData && lastMessageData.senderId === currentUser.uid;
                 updateReadReceiptUI();
-                
-                // Call global scroll to ensure basic texts stick to the bottom
                 scrollToBottom();
-                
                 isFirstLoad = false;
             });
         }
 
         // ==========================================
-        // 6. SENDING MESSAGES & PUSH TRIGGERS
+        // SENDING MESSAGES & PUSH TRIGGERS
         // ==========================================
 
         document.getElementById('message-form').addEventListener('submit', async (e) => {
@@ -1070,7 +1082,7 @@
         });
 
         // ==========================================
-        // 7. WEBRTC DOCKED VIDEO CALLING
+        // WEBRTC DOCKED VIDEO CALLING & GLOBAL UI
         // ==========================================
         
         async function setupWebcam() {
@@ -1104,18 +1116,56 @@
             onSnapshot(answerCandidates, (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
         });
 
+        // Global Answer/Decline Handlers
+        window.answerGlobalCall = function() {
+            if (!globalIncomingCaller || !globalIncomingCallId) return;
+            document.getElementById('global-call-banner').classList.remove('active');
+            
+            // Turn off the sidebar icon
+            const callerIcon = document.getElementById(`call-icon-${globalIncomingCaller.uid}`);
+            if (callerIcon) callerIcon.style.display = 'none';
+
+            openChat(globalIncomingCaller);
+            document.getElementById('call-panel').classList.remove('hidden');
+            document.getElementById('call-status').textContent = "Connecting...";
+            activeCallDocId = globalIncomingCallId;
+            
+            setupWebcam().then(async () => {
+                const callDoc = doc(db, 'calls', activeCallDocId);
+                pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
+                const callData = (await getDoc(callDoc)).data();
+                await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+                const answerDescription = await pc.createAnswer();
+                await pc.setLocalDescription(answerDescription);
+                await updateDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'connected' });
+                document.getElementById('call-status').textContent = "In Call";
+                onSnapshot(collection(callDoc, 'offerCandidates'), (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
+            });
+        };
+
+        window.declineGlobalCall = function() {
+            if (globalIncomingCallId) {
+                updateDoc(doc(db, 'calls', globalIncomingCallId), { status: 'ended' });
+            }
+            endCall();
+        };
+
         function listenForIncomingCalls() {
             unsubscribeCallListener = onSnapshot(collection(db, 'calls'), (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     const data = change.doc.data();
+                    
                     if (change.type === 'added' && data.receiverId === currentUser.uid && data.status === 'ringing') {
-                        activeCallDocId = change.doc.id;
-                        showToast("Incoming Video Call", "Tap to answer", () => {
-                            openChat(allUsersMap[data.callerId]);
-                            document.getElementById('call-panel').classList.remove('hidden');
-                            document.getElementById('call-status').textContent = "Incoming Call...";
-                            document.getElementById('btn-answer-call').classList.remove('hidden');
-                        });
+                        globalIncomingCallId = change.doc.id;
+                        globalIncomingCaller = allUsersMap[data.callerId];
+                        
+                        // Turn ON sidebar pulsing icon
+                        const callerIcon = document.getElementById(`call-icon-${data.callerId}`);
+                        if (callerIcon) callerIcon.style.display = 'block';
+
+                        // Show Global Banner
+                        document.getElementById('banner-caller-name').textContent = globalIncomingCaller?.username || 'Unknown';
+                        document.getElementById('global-call-banner').classList.add('active');
                         
                         if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                             fetch(VERCEL_API_URL, {
@@ -1130,36 +1180,34 @@
                             }).catch(e=>{});
                         }
                     }
-                    if (change.type === 'modified' && data.status === 'ended') endCall();
+                    if (change.type === 'modified' && data.status === 'ended') {
+                        endCall();
+                    }
                 });
             });
         }
 
-        document.getElementById('btn-answer-call').addEventListener('click', async () => {
-            document.getElementById('btn-answer-call').classList.add('hidden');
-            document.getElementById('call-status').textContent = "Connecting...";
-            await setupWebcam();
-            const callDoc = doc(db, 'calls', activeCallDocId);
-            pc.onicecandidate = (event) => { if (event.candidate) addDoc(collection(callDoc, 'answerCandidates'), event.candidate.toJSON()); };
-            const callData = (await getDoc(callDoc)).data();
-            await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
-            const answerDescription = await pc.createAnswer();
-            await pc.setLocalDescription(answerDescription);
-            await updateDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'connected' });
-            document.getElementById('call-status').textContent = "In Call";
-            onSnapshot(collection(callDoc, 'offerCandidates'), (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
-        });
-
         document.getElementById('btn-end-call').addEventListener('click', () => { if (activeCallDocId) updateDoc(doc(db, 'calls', activeCallDocId), { status: 'ended' }); endCall(); });
+        
         function endCall() {
             if (pc) { pc.close(); pc = null; }
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
             if (activeCallUnsubscribe) activeCallUnsubscribe();
+            
             document.getElementById('call-panel').classList.add('hidden');
+            document.getElementById('global-call-banner').classList.remove('active');
+            
+            if (globalIncomingCaller) {
+                const callerIcon = document.getElementById(`call-icon-${globalIncomingCaller.uid}`);
+                if (callerIcon) callerIcon.style.display = 'none';
+            }
+            
             document.getElementById('local-video').srcObject = null;
             document.getElementById('remote-video').srcObject = null;
             activeCallDocId = null;
+            globalIncomingCallId = null;
+            globalIncomingCaller = null;
         }
     </script>
 </body>
