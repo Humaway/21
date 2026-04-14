@@ -354,7 +354,7 @@
         // ==========================================
         
         // TODO: PASTE YOUR FIREBASE CONFIG HERE
-       const firebaseConfig = {
+        const firebaseConfig = {
           apiKey: "AIzaSyDXmjZBRGqhSPSTTxTDappbJOaFerRQwBw",
           authDomain: "messenger-cfa6e.firebaseapp.com",
           projectId: "messenger-cfa6e",
@@ -367,7 +367,7 @@
         const GLOBAL_OBFUSCATION_KEY = "MySuperSecretAppPassword123!";
         const VAPID_PUBLIC_KEY = "BDqR8D_4VJvnToLK1hTUZy8cG_WNCDnPLkDeNE28IZsaBX4NjKOV2kxeLJSrRH02M0YYsOOrfpKamuG7h6KD5x4";
         const VERCEL_API_URL = "https://backend-gray-psi-14.vercel.app/api/notify";
-        
+
         const app = initializeApp(firebaseConfig);
         
         const db = initializeFirestore(app, {
@@ -391,7 +391,6 @@
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
         let pc = null, localStream = null, remoteStream = null, activeCallDocId = null, activeCallUnsubscribe = null;
         
-        // Global variables to track incoming calls
         let globalIncomingCallId = null;
         let globalIncomingCaller = null;
 
@@ -400,35 +399,87 @@
         }
 
         // ==========================================
-        // AUDIO & UI HELPERS
+        // AUDIO & UI HELPERS (WITH CUSTOM CALL SOUNDS)
         // ==========================================
         let audioCtx = null;
+        let ringtoneInterval = null;
+
         function initAudio() {
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
             if (audioCtx.state === 'suspended') { audioCtx.resume(); }
         }
 
-        function playPopSound() {
+        // Base synthesizer function
+        function playNote(freq, time, duration) {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.2, time + 0.02);
+            gain.gain.linearRampToValueAtTime(0, time + duration);
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        // Re-creating your audio file (Da-da-da-da-da-da-da-da, TAA-da, TAA-da)
+        function playRingtone() {
+            initAudio();
+            if (ringtoneInterval) clearInterval(ringtoneInterval);
+
+            function playPattern() {
+                const t = audioCtx.currentTime;
+                // 8 fast 16th notes
+                for(let i=0; i<8; i++) {
+                    playNote(400, t + (i * 0.12), 0.08); 
+                }
+                // TAA-da
+                playNote(600, t + 1.0, 0.15);
+                playNote(500, t + 1.2, 0.15);
+                // TAA-da
+                playNote(600, t + 1.5, 0.15);
+                playNote(500, t + 1.7, 0.15);
+            }
+
+            playPattern();
+            ringtoneInterval = setInterval(playPattern, 2200); // Loop every 2.2 seconds
+        }
+
+        function stopRingtone() {
+            if (ringtoneInterval) {
+                clearInterval(ringtoneInterval);
+                ringtoneInterval = null;
+            }
+        }
+
+        function playPickupSound() {
+            initAudio();
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            playNote(440, t, 0.1);
+            playNote(660, t + 0.1, 0.2); // Ascending
+        }
+
+        function playHangupSound() {
+            initAudio();
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            playNote(660, t, 0.1);
+            playNote(440, t + 0.1, 0.2); // Descending
+        }
+
+        function playPopSound() {
+            initAudio();
+            if (!audioCtx) return;
+            playNote(400, audioCtx.currentTime, 0.1);
         }
 
         function playDingSound() {
+            initAudio();
             if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            playNote(880, audioCtx.currentTime, 0.2);
         }
 
         window.openLightbox = function(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('active'); };
@@ -471,7 +522,7 @@
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
         // ==========================================
-        // BULLETPROOF PRESENCE SYSTEM (UPDATED)
+        // BULLETPROOF PRESENCE SYSTEM
         // ==========================================
         function setUserStatus(status) {
             if (currentUser) {
@@ -485,7 +536,6 @@
             else setUserStatus('offline');
         });
         
-        // Extra aggressive hooks for sudden closes
         window.addEventListener('pagehide', () => { setUserStatus('offline'); });
         window.addEventListener('unload', () => { setUserStatus('offline'); });
         window.addEventListener('beforeunload', () => { setUserStatus('offline'); });
@@ -807,7 +857,10 @@
             if (!currentChatUser.isGroup) {
                 unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                     const metaData = metaSnap.data();
-                    if (metaData && metaData.unreadBy === currentUser.uid) { updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }); }
+                    
+                    if (metaData && metaData.unreadBy === currentUser.uid) {
+                        updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null });
+                    }
                     
                     hasFriendRead = metaData && metaData.unreadBy === null;
                     updateReadReceiptUI();
@@ -1082,7 +1135,7 @@
         });
 
         // ==========================================
-        // WEBRTC DOCKED VIDEO CALLING & GLOBAL UI
+        // WEBRTC DOCKED VIDEO CALLING & SOUNDS
         // ==========================================
         
         async function setupWebcam() {
@@ -1096,21 +1149,32 @@
         }
 
         document.getElementById('btn-start-call').addEventListener('click', async () => {
+            initAudio(); // Required to wake up the AudioContext
+            playRingtone(); // Play outgoing ringtone
+            
             document.getElementById('call-panel').classList.remove('hidden');
             document.getElementById('call-status').textContent = "Calling " + currentChatUser.username + "...";
             document.getElementById('btn-answer-call').classList.add('hidden');
+            
             await setupWebcam();
             const callDoc = doc(collection(db, 'calls'));
             activeCallDocId = callDoc.id;
             const offerCandidates = collection(callDoc, 'offerCandidates');
             const answerCandidates = collection(callDoc, 'answerCandidates');
+            
             pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
             const offerDescription = await pc.createOffer();
             await pc.setLocalDescription(offerDescription);
             await setDoc(callDoc, { offer: { sdp: offerDescription.sdp, type: offerDescription.type }, callerId: currentUser.uid, receiverId: currentChatUser.uid, status: 'ringing' });
+            
             activeCallUnsubscribe = onSnapshot(callDoc, (snapshot) => {
                 const data = snapshot.data();
-                if (!pc.currentRemoteDescription && data?.answer) { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('call-status').textContent = "In Call"; }
+                if (!pc.currentRemoteDescription && data?.answer) { 
+                    stopRingtone();
+                    playPickupSound(); // Friend answered
+                    pc.setRemoteDescription(new RTCSessionDescription(data.answer)); 
+                    document.getElementById('call-status').textContent = "In Call"; 
+                }
                 if (data?.status === 'ended') endCall();
             });
             onSnapshot(answerCandidates, (snapshot) => { snapshot.docChanges().forEach((change) => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); }); });
@@ -1119,9 +1183,11 @@
         // Global Answer/Decline Handlers
         window.answerGlobalCall = function() {
             if (!globalIncomingCaller || !globalIncomingCallId) return;
+            initAudio();
+            stopRingtone();
+            playPickupSound();
+
             document.getElementById('global-call-banner').classList.remove('active');
-            
-            // Turn off the sidebar icon
             const callerIcon = document.getElementById(`call-icon-${globalIncomingCaller.uid}`);
             if (callerIcon) callerIcon.style.display = 'none';
 
@@ -1159,11 +1225,11 @@
                         globalIncomingCallId = change.doc.id;
                         globalIncomingCaller = allUsersMap[data.callerId];
                         
-                        // Turn ON sidebar pulsing icon
+                        playRingtone(); // INCOMING RINGTONE 
+
                         const callerIcon = document.getElementById(`call-icon-${data.callerId}`);
                         if (callerIcon) callerIcon.style.display = 'block';
 
-                        // Show Global Banner
                         document.getElementById('banner-caller-name').textContent = globalIncomingCaller?.username || 'Unknown';
                         document.getElementById('global-call-banner').classList.add('active');
                         
@@ -1190,6 +1256,9 @@
         document.getElementById('btn-end-call').addEventListener('click', () => { if (activeCallDocId) updateDoc(doc(db, 'calls', activeCallDocId), { status: 'ended' }); endCall(); });
         
         function endCall() {
+            stopRingtone();
+            playHangupSound();
+
             if (pc) { pc.close(); pc = null; }
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             if (remoteStream) { remoteStream.getTracks().forEach(track => track.stop()); remoteStream = null; }
