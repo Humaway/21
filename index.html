@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ANULChat</title>
+    <title>Naori Messenger</title>
     
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -124,7 +124,7 @@
         .message:hover, .message.highlight { background: rgba(4, 4, 5, 0.07); }
         .message.highlight { background: rgba(88, 101, 242, 0.2); }
         
-        /* Actions (Hover & Mobile Long-Press) */
+        /* Actions */
         .msg-actions { position: absolute; right: 16px; top: -15px; background: var(--bg-secondary); border: 1px solid var(--divider); border-radius: 8px; display: none; padding: 2px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2); align-items: center;}
         .message:hover .msg-actions, .message.show-actions .msg-actions { display: flex; }
         .msg-action-btn { background: transparent; color: var(--text-muted); border: none; padding: 6px; cursor: pointer; font-size: 1rem; border-radius: 4px; }
@@ -202,7 +202,7 @@
 
     <div id="auth-screen" class="modal-overlay">
         <div class="modal">
-            <h2>ANULChat</h2>
+            <h2>Naori Messenger</h2>
             <form id="auth-form" class="form-col">
                 <input type="text" id="auth-username" placeholder="Username (for Sign Up)">
                 <input type="email" id="auth-email" placeholder="Email" required>
@@ -258,7 +258,7 @@
     <div id="app-container" class="hidden">
         <div id="sidebar">
             <div class="sidebar-header">
-                <span>ANUL Server</span>
+                <span>Naori Server</span>
             </div>
             
             <div class="sidebar-category">Channels</div>
@@ -331,7 +331,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // ==========================================
@@ -354,7 +354,12 @@
         const VERCEL_API_URL = "https://backend-gray-psi-14.vercel.app/api/notify";
         
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        
+        // NEW: OFFLINE CACHE INITIALIZATION
+        const db = initializeFirestore(app, {
+            localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+        });
+        
         const auth = getAuth(app);
 
         let currentUser = null;
@@ -411,6 +416,12 @@
         window.openLightbox = function(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('active'); };
         window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('active'); setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200); };
         
+        // NEW: GLOBAL SCROLL HELPER
+        window.scrollToBottom = function() {
+            const c = document.getElementById('messages-container');
+            if (c) c.scrollTop = c.scrollHeight;
+        };
+
         window.scrollToMsg = function(msgId) {
             const el = document.getElementById(`msg-${msgId}`);
             if (el) {
@@ -443,7 +454,7 @@
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
         // ==========================================
-        // ONLINE / OFFLINE PRESENCE SYSTEM
+        // BULLETPROOF PRESENCE SYSTEM
         // ==========================================
         function setUserStatus(status) {
             if (currentUser) {
@@ -452,11 +463,14 @@
             }
         }
         
+        // Use visibilitychange to accurately track when user closes app or locks phone
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') setUserStatus('online');
-            else setUserStatus('away');
+            else setUserStatus('offline');
         });
         
+        // Backup catch-alls for app closure
+        window.addEventListener('pagehide', () => { setUserStatus('offline'); });
         window.addEventListener('beforeunload', () => { setUserStatus('offline'); });
 
         // ==========================================
@@ -662,7 +676,6 @@
             
             cancelReply();
             
-            // FIX: Only clear the unread flag if WE are the ones who were supposed to read it
             getDoc(doc(db, 'chats_meta', currentChatId)).then(snap => {
                 if (snap.exists() && snap.data().unreadBy === currentUser.uid) {
                     updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null });
@@ -776,7 +789,6 @@
                 unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                     const metaData = metaSnap.data();
                     
-                    // FIX: Auto-clear unread status if we receive a message while already looking at the chat
                     if (metaData && metaData.unreadBy === currentUser.uid) {
                         updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null });
                     }
@@ -822,7 +834,8 @@
 
                     let contentHTML = '';
                     if (data.type === 'image') {
-                        contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image" onclick="openLightbox(this.src)">`;
+                        // NEW: Added onload="scrollToBottom()" directly to the image
+                        contentHTML = `<img src="${decryptedText}" class="msg-image" alt="Shared Image" onclick="openLightbox(this.src)" onload="scrollToBottom()">`;
                     } else {
                         contentHTML = `<div class="msg-text">${decryptedText}</div>`;
                     }
@@ -900,7 +913,10 @@
                 pinnedBar.style.display = hasPins ? 'block' : 'none';
                 isMyLastMessage = lastMessageData && lastMessageData.senderId === currentUser.uid;
                 updateReadReceiptUI();
-                container.scrollTop = container.scrollHeight;
+                
+                // Call global scroll to ensure basic texts stick to the bottom
+                scrollToBottom();
+                
                 isFirstLoad = false;
             });
         }
