@@ -37,9 +37,6 @@
         #toast-container { position: fixed; top: 70px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 90vw; }
         .toast { background: var(--bg-secondary); border-left: 4px solid var(--accent); color: var(--text-normal); padding: 15px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.3s ease-out; position: relative; overflow: hidden; }
         .toast-title { font-weight: bold; color: var(--text-header); margin-bottom: 5px; font-size: 0.95rem; }
-        .toast-body { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .toast.fade-out { opacity: 0; transition: opacity 0.3s ease-out; }
 
         /* Image Lightbox */
         #lightbox { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s ease-out; cursor: zoom-out; backdrop-filter: blur(5px); }
@@ -97,26 +94,27 @@
 
         #current-user-bar { background: var(--bg-tertiary); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
         .user-details { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-        .user-details strong { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         /* Chat Area */
         #chat-area { flex: 1; background: var(--bg-primary); display: flex; flex-direction: column; min-width: 0; }
         .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid var(--divider); font-weight: 600; color: var(--text-header); gap: 10px; flex-shrink: 0; background: var(--bg-primary); z-index: 5;}
         #mobile-back-btn { display: none; background: transparent; padding: 5px; color: var(--text-muted); }
         .header-actions { margin-left: auto; display: flex; gap: 10px; }
+        
         #btn-start-call { background: var(--bg-tertiary); color: var(--text-normal); padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
         #btn-join-call { background: #3ba55c; color: white; padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; display: flex; align-items: center; gap: 5px; animation: glowJoin 2s infinite; }
         @keyframes glowJoin { 0% { box-shadow: 0 0 5px #3ba55c; } 50% { box-shadow: 0 0 15px #3ba55c; } 100% { box-shadow: 0 0 5px #3ba55c; } }
 
-        /* Dynamic Mesh Video Panel */
-        #call-panel { background: var(--bg-tertiary); border-bottom: 1px solid var(--divider); padding: 15px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 4; transition: all 0.3s ease; max-height: 30vh; }
+        /* NEW DYNAMIC GRID: Adapts cleanly without squashing chat */
+        #call-panel { background: var(--bg-tertiary); border-bottom: 1px solid var(--divider); padding: 15px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 4; transition: all 0.3s ease; max-height: 35vh; }
         #call-panel.fullscreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-height: none; z-index: 9999; border-radius: 0; }
         .call-panel-header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         
-        .video-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; width: 100%; flex: 1; overflow-y: auto; padding-bottom: 5px; }
-        .video-wrapper { position: relative; flex: 1 1 150px; max-width: 45%; max-height: 100%; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center; }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; width: 100%; flex: 1; overflow-y: auto; padding-bottom: 5px; align-items: center; }
+        .fullscreen .video-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); }
+        
+        .video-wrapper { position: relative; width: 100%; height: 100%; border-radius: 8px; overflow: hidden; background: #0b0b0b; border: 1px solid var(--divider); box-shadow: 0 2px 8px rgba(0,0,0,0.5); aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center; }
         .video-wrapper video { width: 100%; height: 100%; object-fit: contain; }
-        .fullscreen .video-wrapper { max-width: 40vw; max-height: 45vh; }
         #local-video { transform: scaleX(-1); }
 
         .video-name-badge { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; z-index: 2; pointer-events: none; display: flex; align-items: center; gap: 5px; }
@@ -149,7 +147,6 @@
         .msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
         .msg-username { font-weight: 500; font-size: 1rem; }
         .msg-time { color: var(--text-muted); font-size: 0.75rem; }
-        .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 5px; }
         .msg-text { color: var(--text-normal); font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
         
         .quoted-message { font-size: 0.8rem; color: var(--text-muted); border-left: 2px solid var(--divider); padding-left: 8px; margin-bottom: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; transition: color 0.1s;}
@@ -183,7 +180,13 @@
             #app-container.chat-active #sidebar { display: none; }
             #app-container.chat-active #chat-area { display: flex; }
             #mobile-back-btn { display: block; }
-            .video-wrapper { max-width: 100%; }
+        }
+        
+        @media (min-width: 1024px) {
+            #messages-container, #input-area, #pinned-bar { padding-left: 10vw; padding-right: 10vw; }
+        }
+        @media (min-width: 1400px) {
+            #messages-container, #input-area, #pinned-bar { padding-left: 15vw; padding-right: 15vw; }
         }
     </style>
 </head>
@@ -191,7 +194,7 @@
 
     <div id="global-call-banner">
         <span style="font-size: 1.2rem;">📞</span>
-        <span>Incoming Video Call from <span id="banner-caller-name">Someone</span></span>
+        <span>Incoming Call from <span id="banner-caller-name">Someone</span></span>
         <div class="banner-btns">
             <button class="btn-answer" onclick="answerGlobalCall()">Answer</button>
             <button class="btn-decline" onclick="declineGlobalCall()">Decline</button>
@@ -285,7 +288,7 @@
                 <span id="chat-title">Select a user</span>
                 <div class="header-actions">
                     <button id="btn-join-call" class="hidden" onclick="rtcManager.join(false)">📞 Join Call</button>
-                    <button id="btn-start-call" class="hidden" onclick="rtcManager.join(true)">📞 Start Call</button>
+                    <button id="btn-start-call" class="hidden" onclick="rtcManager.join(true)">📞 Call</button>
                 </div>
             </div>
             
@@ -360,6 +363,7 @@
         let unsubscribeChat = null;
         let unsubscribeMetaRealtime = null; 
         let unsubscribeGroupMeta = null;
+        let unsubscribeGlobalRing = null; // NEW: The bulletproof global ringer
         let unreadListeners = []; 
         let initialGroupLoad = true;
 
@@ -379,33 +383,18 @@
             try {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
-                
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                gain.gain.value = 0; // Silent note to force browser unlock
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(0);
-                osc.stop(0.01);
-                
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                gain.gain.value = 0; osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(0); osc.stop(0.01);
                 audioUnlocked = true;
-            } catch (e) { console.log("Audio unlock failed:", e); }
+            } catch (e) { }
         }
-
-        // Listen for any interaction to unlock audio
         ['click', 'touchstart', 'keydown'].forEach(evt => document.body.addEventListener(evt, unlockAudio, {once:true}));
 
-        function initAudio() { 
-            try {
-                if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } 
-                if (audioCtx.state === 'suspended') { audioCtx.resume(); } 
-            } catch(e) {}
-        }
-
+        function initAudio() { try { if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } if (audioCtx.state === 'suspended') { audioCtx.resume(); } } catch(e) {} }
         function playNote(freq, time, duration) {
             try {
-                if (!audioCtx) return; 
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time);
                 gain.gain.linearRampToValueAtTime(0.2, time + 0.02); gain.gain.linearRampToValueAtTime(0, time + duration);
@@ -415,8 +404,7 @@
 
         function playRingtone() { 
             try {
-                initAudio(); 
-                if (ringtoneInterval) clearInterval(ringtoneInterval); 
+                initAudio(); if (ringtoneInterval) clearInterval(ringtoneInterval); 
                 function playPattern() { 
                     try {
                         const t = audioCtx.currentTime; 
@@ -425,54 +413,25 @@
                         playNote(600, t + 1.5, 0.15); playNote(500, t + 1.7, 0.15); 
                     } catch(e){}
                 } 
-                playPattern(); 
-                ringtoneInterval = setInterval(playPattern, 2200); 
+                playPattern(); ringtoneInterval = setInterval(playPattern, 2200); 
             } catch(e) {}
         }
 
         function playDialingSound() { 
             try {
-                initAudio(); 
-                if (ringtoneInterval) clearInterval(ringtoneInterval); 
+                initAudio(); if (ringtoneInterval) clearInterval(ringtoneInterval); 
                 function playPattern() { 
-                    try {
-                        if (!audioCtx) return; 
-                        const t = audioCtx.currentTime; 
-                        playNote(440, t, 1.0); playNote(480, t, 1.0); 
-                    } catch(e){}
+                    try { if (!audioCtx) return; const t = audioCtx.currentTime; playNote(440, t, 1.0); playNote(480, t, 1.0); } catch(e){}
                 } 
-                playPattern(); 
-                ringtoneInterval = setInterval(playPattern, 3000); 
+                playPattern(); ringtoneInterval = setInterval(playPattern, 3000); 
             } catch(e) {}
         }
 
-        function stopRingtone() { 
-            try {
-                if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; } 
-            } catch(e){}
-        }
-
-        function playPickupSound() { 
-            try {
-                initAudio(); if (!audioCtx) return; 
-                playNote(440, audioCtx.currentTime, 0.1); playNote(660, audioCtx.currentTime + 0.1, 0.2); 
-            } catch(e){}
-        }
-
-        function playHangupSound() { 
-            try {
-                initAudio(); if (!audioCtx) return; 
-                playNote(660, audioCtx.currentTime, 0.1); playNote(440, audioCtx.currentTime + 0.1, 0.2); 
-            } catch(e){}
-        }
-
-        function playPopSound() { 
-            try { initAudio(); if (!audioCtx) return; playNote(400, audioCtx.currentTime, 0.1); } catch(e){} 
-        }
-
-        function playDingSound() { 
-            try { initAudio(); if (!audioCtx) return; playNote(880, audioCtx.currentTime, 0.2); } catch(e){} 
-        }
+        function stopRingtone() { try { if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; } } catch(e){} }
+        function playPickupSound() { try { initAudio(); if (!audioCtx) return; playNote(440, audioCtx.currentTime, 0.1); playNote(660, audioCtx.currentTime + 0.1, 0.2); } catch(e){} }
+        function playHangupSound() { try { initAudio(); if (!audioCtx) return; playNote(660, audioCtx.currentTime, 0.1); playNote(440, audioCtx.currentTime + 0.1, 0.2); } catch(e){} }
+        function playPopSound() { try { initAudio(); if (!audioCtx) return; playNote(400, audioCtx.currentTime, 0.1); } catch(e){} }
+        function playDingSound() { try { initAudio(); if (!audioCtx) return; playNote(880, audioCtx.currentTime, 0.2); } catch(e){} }
 
         window.openLightbox = function(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox').classList.add('active'); };
         window.closeLightbox = function() { document.getElementById('lightbox').classList.remove('active'); setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 200); };
@@ -489,6 +448,9 @@
         window.setTheme = function(themeName) { document.body.setAttribute('data-theme', themeName); localStorage.setItem('chat_theme', themeName); }
         setTheme(localStorage.getItem('chat_theme') || 'dark');
 
+        // ==========================================
+        // PRESENCE SYSTEM
+        // ==========================================
         function setUserStatus(status) { if (currentUser) { updateDoc(doc(db, "users", currentUser.uid), { status: status }).catch(()=>{}); document.getElementById('my-status-dot').className = `status-dot ${status}`; } }
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setUserStatus('online'); else setUserStatus('offline'); });
         window.addEventListener('pagehide', () => { setUserStatus('offline'); });
@@ -522,14 +484,14 @@
         function urlBase64ToUint8Array(base64String) { const padding = '='.repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/'); const rawData = window.atob(base64); const outputArray = new Uint8Array(rawData.length); for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); } return outputArray; }
 
         document.getElementById('btn-signup').addEventListener('click', async () => {
-            unlockAudio(); requestNotificationPermission(); 
+            unlockAudio(); if ("Notification" in window) Notification.requestPermission();
             const email = document.getElementById('auth-email').value; const password = document.getElementById('auth-password').value; const username = document.getElementById('auth-username').value;
             if (!username) return document.getElementById('auth-error').textContent = "Username required";
             try { const cred = await createUserWithEmailAndPassword(auth, email, password); await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, username: username, nameColor: '#ffffff', status: 'online' }); } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); unlockAudio(); 
+            e.preventDefault(); unlockAudio(); if ("Notification" in window) Notification.requestPermission();
             try { await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value); } catch (error) { document.getElementById('auth-error').textContent = error.message; }
         });
 
@@ -538,6 +500,7 @@
                 currentUser = user;
                 document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden');
                 setUserStatus('online'); 
+                
                 if ("Notification" in window && navigator.serviceWorker) {
                     navigator.serviceWorker.ready.then(async (registration) => {
                         try {
@@ -548,10 +511,11 @@
                     });
                 }
                 loadUsers();
+                rtcManager.activateGlobalRinger(); // NEW: Fire up bulletproof incoming call listener
             } else {
                 setUserStatus('offline'); currentUser = null;
                 document.getElementById('app-container').classList.add('hidden'); document.getElementById('auth-screen').classList.remove('hidden'); document.getElementById('settings-modal').classList.add('hidden');
-                if (unsubscribeMetaRealtime) unsubscribeMetaRealtime(); if (unsubscribeGroupMeta) unsubscribeGroupMeta(); unreadListeners.forEach(unsub => unsub());
+                if (unsubscribeMetaRealtime) unsubscribeMetaRealtime(); if (unsubscribeGroupMeta) unsubscribeGroupMeta(); if (unsubscribeGlobalRing) unsubscribeGlobalRing(); unreadListeners.forEach(unsub => unsub());
             }
         });
 
@@ -590,7 +554,6 @@
                         userDiv.addEventListener('click', () => openChat(userData)); userList.appendChild(userDiv);
 
                         const chatId = generateChatId(currentUser.uid, userData.uid); let previousUnreadState = false; 
-                        
                         const unsub = onSnapshot(doc(db, 'chats_meta', chatId), (metaSnap) => {
                             const metaData = metaSnap.data(); const dot = document.getElementById(`dot-${userData.uid}`);
                             const currentlyUnread = metaData && metaData.unreadBy === currentUser.uid;
@@ -598,13 +561,6 @@
                             if (dot) dot.style.display = currentlyUnread ? 'block' : 'none';
                             if (currentlyUnread && !previousUnreadState && currentChatId !== chatId) { showToast(`New Message`, `From ${userData.username}`, () => openChat(userData)); }
                             previousUnreadState = currentlyUnread;
-
-                            // Trigger Incoming Ring
-                            if (metaData && metaData.ringing === currentUser.uid) {
-                                rtcManager.handleIncomingRing(userData.uid, chatId);
-                            } else if (metaData && !metaData.ringing && rtcManager.globalIncomingCallId === chatId) {
-                                rtcManager.clearIncomingRing();
-                            }
                         });
                         unreadListeners.push(unsub);
                     } else {
@@ -640,6 +596,7 @@
             servers: { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] },
 
             async setupMedia() {
+                // FIXED VIDEO LAG: Hard limits on resolution/FPS
                 const constraints = { video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 24 } }, audio: true };
                 try {
                     this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -743,9 +700,7 @@
             createPeer(remoteUid) {
                 if (this.peers[remoteUid]) return this.peers[remoteUid];
                 const pc = new RTCPeerConnection(this.servers);
-                if (this.localStream) {
-                    this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
-                }
+                if (this.localStream) { this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream)); }
                 pc.onicecandidate = event => { if (event.candidate) { addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'candidate', candidate: event.candidate.toJSON() }); } };
 
                 const remoteStream = new MediaStream();
@@ -772,7 +727,7 @@
                     const offer = await pc.createOffer();
                     await pc.setLocalDescription(offer);
                     await addDoc(collection(db, `chats/${this.chatId}/signals`), { from: currentUser.uid, to: remoteUid, type: 'offer', sdp: offer.sdp });
-                } catch(e) { console.error("Peer Initiation Failed", e); }
+                } catch(e) {}
             },
 
             async handleSignal(data) {
@@ -792,20 +747,18 @@
                     } else if (data.type === 'candidate') {
                         await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e=>{});
                     }
-                } catch(e) { console.error("Signal Handling Failed", e); }
+                } catch(e) {}
             },
 
             removePeer(remoteUid) {
                 if (this.peers[remoteUid]) { this.peers[remoteUid].close(); delete this.peers[remoteUid]; }
                 const wrapperEl = document.getElementById(`wrapper-${remoteUid}`);
                 if (wrapperEl) wrapperEl.remove();
-
-                if (!currentChatUser.isGroup && Object.keys(this.peers).length === 0) { this.leave(); }
+                if (!currentChatUser.isGroup && Object.keys(this.peers).length === 0) { this.leave(false); }
             },
 
-            async leave() {
+            async leave(syncDatabase = true) {
                 stopRingtone(); playHangupSound();
-                
                 document.getElementById('call-panel').classList.add('hidden');
                 document.getElementById('call-panel').classList.remove('fullscreen');
 
@@ -815,26 +768,45 @@
                 document.getElementById('video-grid').innerHTML = '';
                 this.unsubs.forEach(unsub => unsub()); this.unsubs = [];
 
-                if (this.chatId) {
+                if (this.chatId && syncDatabase) {
                     await deleteDoc(doc(db, `chats/${this.chatId}/participants`, currentUser.uid)).catch(e=>{});
-                    getDoc(doc(db, 'chats_meta', this.chatId)).then(snap => { updateDoc(doc(db, 'chats_meta', this.chatId), { ringing: null }).catch(e=>{}); });
-                    this.chatId = null;
+                    if (!currentChatUser.isGroup) {
+                        updateDoc(doc(db, 'chats_meta', this.chatId), { ringing: null, callActive: false }).catch(e=>{});
+                    }
                 }
+                this.chatId = null;
+            },
+
+            // BUG FIX: Global Bulletproof Ringer Listener
+            activateGlobalRinger() {
+                if (unsubscribeGlobalRing) unsubscribeGlobalRing();
+                const q = query(collection(db, 'chats_meta'), where('ringing', '==', currentUser.uid));
+                unsubscribeGlobalRing = onSnapshot(q, (snap) => {
+                    snap.docChanges().forEach(change => {
+                        if (change.type === 'added' || change.type === 'modified') {
+                            const ringingChatId = change.doc.id;
+                            const callerUid = ringingChatId.replace(currentUser.uid, '').replace('_', '');
+                            this.handleIncomingRing(callerUid, ringingChatId);
+                        }
+                        if (change.type === 'removed') {
+                            this.clearIncomingRing();
+                        }
+                    });
+                });
             },
 
             handleIncomingRing(callerUid, chatId) {
                 if (this.globalIncomingCallId === chatId) return; 
                 this.globalIncomingCallId = chatId;
-                this.globalIncomingCaller = allUsersMap[callerUid];
+                this.globalIncomingCaller = allUsersMap[callerUid] || {uid: callerUid, username: 'Someone', isGroup: false};
 
-                // ALWAYS trigger UI first before Audio to prevent blocking
                 const callerIcon = document.getElementById(`call-icon-${callerUid}`);
                 if (callerIcon) callerIcon.style.display = 'block';
 
-                document.getElementById('banner-caller-name').textContent = this.globalIncomingCaller?.username || 'Unknown';
+                document.getElementById('banner-caller-name').textContent = this.globalIncomingCaller.username;
                 document.getElementById('global-call-banner').classList.add('active');
 
-                playRingtone(); // Might fail if user hasn't clicked yet, but UI is safe!
+                playRingtone();
                 
                 if (currentUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") {
                     fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentUser.pushSubscription, title: "Incoming Video Call", body: "Tap to answer", icon: null }) }).catch(e=>{});
@@ -859,7 +831,7 @@
             },
 
             declineGlobal() {
-                if (this.globalIncomingCallId) { updateDoc(doc(db, 'chats_meta', this.globalIncomingCallId), { ringing: null }).catch(e=>{}); }
+                if (this.globalIncomingCallId) { updateDoc(doc(db, 'chats_meta', this.globalIncomingCallId), { ringing: null, callActive: false }).catch(e=>{}); }
                 this.clearIncomingRing();
                 playHangupSound();
             }
@@ -884,6 +856,10 @@
             document.getElementById('input-area').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
             cancelReply();
+            
+            // Update base button text contextually
+            document.getElementById('btn-start-call').textContent = "📞 Call";
+
             getDoc(doc(db, 'chats_meta', currentChatId)).then(snap => { if (snap.exists() && snap.data().unreadBy === currentUser.uid) { updateDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: null }); } });
             loadChatMessages();
         }
@@ -897,6 +873,10 @@
             document.getElementById('input-area').classList.remove('hidden');
             document.getElementById('app-container').classList.add('chat-active');
             cancelReply();
+            
+            // Update base button text contextually
+            document.getElementById('btn-start-call').textContent = "📞 Start Call";
+            
             loadChatMessages(); 
         }
 
@@ -933,12 +913,21 @@
             unsubscribeMetaRealtime = onSnapshot(doc(db, 'chats_meta', currentChatId), (metaSnap) => {
                 const metaData = metaSnap.data();
                 
+                // BUG FIX: Accurate Teardown Logic
+                if (metaData && metaData.callActive === false && rtcManager.chatId === currentChatId) {
+                    rtcManager.leave(false); // They hung up, close my UI
+                }
+
                 const btnStart = document.getElementById('btn-start-call');
                 const btnJoin = document.getElementById('btn-join-call');
-                if (metaData && metaData.callActive && !rtcManager.chatId) {
-                    btnJoin.classList.remove('hidden'); btnStart.classList.add('hidden');
-                } else if (!rtcManager.chatId) {
-                    btnJoin.classList.add('hidden'); btnStart.classList.remove('hidden');
+                
+                if (!rtcManager.chatId) {
+                    if (metaData && metaData.callActive) {
+                        btnJoin.classList.remove('hidden'); btnStart.classList.add('hidden');
+                        btnJoin.textContent = currentChatUser.isGroup ? "📞 Join Call" : "📞 Answer";
+                    } else {
+                        btnJoin.classList.add('hidden'); btnStart.classList.remove('hidden');
+                    }
                 } else {
                     btnJoin.classList.add('hidden'); btnStart.classList.add('hidden');
                 }
@@ -1002,10 +991,10 @@
                     
                     if (!currentChatUser.isGroup) {
                         await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
-                        if (currentChatUser && currentChatUser.pushSubscription) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Message", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); }
+                        if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Message", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); }
                     } else {
                         await setDoc(doc(db, 'chats_meta', 'group_general'), { lastSenderId: currentUser.uid, lastSenderName: document.getElementById('my-username').textContent, timestamp: serverTimestamp() }, {merge:true});
-                        Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New message from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); } });
+                        Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New message from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e => {}); } } });
                     }
                     input.value = '';
                 } catch (error) {}
@@ -1029,10 +1018,10 @@
                         
                         if (!currentChatUser.isGroup) {
                             await setDoc(doc(db, 'chats_meta', currentChatId), { unreadBy: currentChatUser.uid, typing: null }, { merge: true });
-                            if (currentChatUser && currentChatUser.pushSubscription) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Photo", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); }
+                            if (currentChatUser && currentChatUser.pushSubscription && VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: currentChatUser.pushSubscription, title: "New Photo", body: `From ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); }
                         } else {
                             await setDoc(doc(db, 'chats_meta', 'group_general'), { lastSenderId: currentUser.uid, lastSenderName: document.getElementById('my-username').textContent, timestamp: serverTimestamp() }, {merge:true});
-                            Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New Photo from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); } });
+                            Object.values(allUsersMap).forEach(user => { if (user.uid !== currentUser.uid && user.pushSubscription && !user.muteGroupNotifications) { if (VERCEL_API_URL !== "https://YOUR-VERCEL-PROJECT-NAME.vercel.app/api/notify") { fetch(VERCEL_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: user.pushSubscription, title: "General Chat", body: `New Photo from ${document.getElementById('my-username').textContent}`, icon: document.getElementById('my-avatar').querySelector('img')?.src || null }) }).catch(e=>{}); } } });
                         }
                     } catch (error) {}
                 }
